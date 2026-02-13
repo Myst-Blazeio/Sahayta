@@ -75,6 +75,7 @@ research/
 test_output.txt
 .firebaserc
 firebase.json
+<<<<<<< HEAD
 
 # IDE
 .idea/
@@ -82,3 +83,5 @@ firebase.json
 .settings/
 *.sublime-project
 *.sublime-workspace
+=======
+>>>>>>> 746cfa9 (r)
