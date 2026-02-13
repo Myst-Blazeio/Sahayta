@@ -120,61 +120,6 @@ const CitizenHome = () => {
           </div>
         </div>
       </section>
-
-      {/* Emergency Help & Contacts Section */}
-      <section className="py-12 px-4 bg-white border-t border-gray-100">
-        <div className="container mx-auto max-w-6xl">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="p-2 bg-red-100 rounded-lg">
-              <Phone className="w-6 h-6 text-red-600" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-gray-800">
-                Emergency Help & Contacts
-              </h2>
-              <p className="text-sm text-gray-500 mt-1">
-                Quick access to emergency services — available 24/7
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
-            {emergencyContacts.map((contact) => {
-              const IconComponent = contact.icon;
-              return (
-                <a
-                  key={contact.number}
-                  href={`tel:${contact.number}`}
-                  className={`group relative overflow-hidden rounded-xl border ${contact.borderColor} ${contact.bgLight} p-5 transition-all duration-300 hover:shadow-xl hover:scale-[1.03] hover:ring-2 ${contact.ringColor} focus:outline-none focus:ring-2 ${contact.ringColor}`}
-                >
-                  {/* Gradient accent bar */}
-                  <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${contact.gradient}`} />
-
-                  <div className="flex items-start gap-4">
-                    <div className={`p-3 rounded-xl bg-gradient-to-br ${contact.gradient} shadow-lg group-hover:shadow-xl transition-shadow`}>
-                      <IconComponent className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className={`font-bold text-base ${contact.textColor}`}>
-                        {contact.name}
-                      </h3>
-                      <p className={`text-2xl font-extrabold tracking-wide ${contact.textColor} mt-1`}>
-                        {contact.number}
-                      </p>
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-gray-500 mt-3 leading-relaxed">
-                    {contact.description}
-                  </p>
-
-
-                </a>
-              );
-            })}
-          </div>
-        </div>
-      </section>
     </div>
   );
 };
@@ -192,6 +137,24 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ icon, title, description }) =
     </div>
     <h3 className="text-lg font-bold mb-2 text-gray-900">{title}</h3>
     <p className="text-sm text-gray-600 leading-relaxed">{description}</p>
+  </div>
+);
+
+interface ContactCardProps {
+  icon: React.ReactNode;
+  title: string;
+  number: string;
+  description: string;
+}
+
+const ContactCard: React.FC<ContactCardProps> = ({ icon, title, number, description }) => (
+  <div className="bg-white p-6 border border-red-100 rounded hover:border-red-300 hover:shadow-md transition cursor-default text-center">
+    <div className="mb-4 bg-red-50 inline-block p-3 rounded-full border border-red-100">
+      {icon}
+    </div>
+    <h3 className="text-lg font-bold mb-1 text-gray-900">{title}</h3>
+    <p className="text-2xl font-bold text-red-600 mb-2">{number}</p>
+    <p className="text-sm text-gray-600">{description}</p>
   </div>
 );
 
