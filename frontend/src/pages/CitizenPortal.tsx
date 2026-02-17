@@ -5,6 +5,10 @@ import Footer from "../components/Footer";
 import axios from "axios";
 import { generateFIRPDF } from "../utils/pdfGenerator";
 import { motion, AnimatePresence } from "framer-motion";
+import AnonymousTip from "../components/AnonymousTip";
+import CommunityAlerts from "../components/CommunityAlerts";
+import FeedbackGrievance from "../components/FeedbackGrievance";
+import SafeRouteFinder from "../components/SafeRouteFinder";
 import {
   Bell,
   X,
@@ -85,7 +89,7 @@ const CitizenPortal = () => {
               >
                 <Bell className="w-6 h-6 text-foreground" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+                  <span className="absolute top-0 right-0 w-3 h-3 bg-primary rounded-full animate-pulse" />
                 )}
               </button>
               <AnimatePresence>
@@ -115,7 +119,7 @@ const CitizenPortal = () => {
                           >
                             <div className="mt-1">
                               <div
-                                className={`w-2 h-2 rounded-full ${!n.is_read ? "bg-blue-500" : "bg-transparent"}`}
+                                className={`w-2 h-2 rounded-full ${!n.is_read ? "bg-primary" : "bg-transparent"}`}
                               />
                             </div>
                             <div className="flex-1">
@@ -144,20 +148,23 @@ const CitizenPortal = () => {
         </header>
 
         {/* Tabs */}
-        <div className="flex space-x-1 bg-muted p-1 rounded-lg mb-8 max-w-md">
-          {["services", "new-fir", "history", "profile"].map((tab) => (
+        <div className="flex flex-wrap justify-center gap-2 bg-muted p-1 rounded-lg mb-8 w-full">
+          {["services", "new-fir", "history", "anonymous-tip", "community-alerts", "feedback", "safe-route", "profile"].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
-                activeTab === tab
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:bg-background/50"
-              }`}
+              className={`py-2 px-4 rounded-md text-sm font-medium transition-all whitespace-nowrap ${activeTab === tab
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:bg-background/50"
+                }`}
             >
               {tab === "services" && "Services"}
               {tab === "new-fir" && "File FIR"}
               {tab === "history" && "My FIRs"}
+              {tab === "anonymous-tip" && "Anonymous Tip"}
+              {tab === "community-alerts" && "Alerts"}
+              {tab === "feedback" && "Feedback"}
+              {tab === "safe-route" && "Safe Route"}
               {tab === "profile" && "Profile"}
             </button>
           ))}
@@ -177,6 +184,10 @@ const CitizenPortal = () => {
             <NewFIRTab onSuccess={() => setActiveTab("history")} />
           )}
           {activeTab === "history" && <HistoryTab />}
+          {activeTab === "anonymous-tip" && <AnonymousTip />}
+          {activeTab === "community-alerts" && <CommunityAlerts />}
+          {activeTab === "feedback" && <FeedbackGrievance />}
+          {activeTab === "safe-route" && <SafeRouteFinder />}
           {activeTab === "profile" && <ProfileTab />}
         </motion.div>
       </main>
@@ -185,34 +196,60 @@ const CitizenPortal = () => {
   );
 };
 
+
+
+
 const ServicesTab: React.FC<{ setActiveTab: (tab: string) => void }> = ({ setActiveTab }) => {
   const services = [
     {
       title: "File an FIR",
       desc: "Report cognizable offenses immediately.",
       action: () => setActiveTab("new-fir"),
-      color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+    },
+    {
+      title: "Anonymous Tip",
+      desc: "Report suspicious activity anonymously. No personal details required.",
+      action: () => setActiveTab("anonymous-tip"),
+    },
+    {
+      title: "Community Alerts",
+      desc: "Stay informed about crimes, safety warnings, and emergencies in your area.",
+      action: () => setActiveTab("community-alerts"),
+    },
+    {
+      title: "Feedback & Grievance",
+      desc: "Submit feedback or complaints about police services and track resolution.",
+      action: () => setActiveTab("feedback"),
+    },
+    {
+      title: "Safe Route Finder",
+      desc: "AI-suggested safer travel routes based on crime data and hotspot analysis.",
+      action: () => setActiveTab("safe-route"),
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {services.map((service, index) => (
-        <div
-          key={index}
-          className="p-6 rounded-lg border border-border bg-card hover:shadow-lg transition-shadow cursor-pointer official-card"
-          onClick={service.action}
-        >
+    <div className="space-y-10">
+      {/* Existing Services */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {services.map((service, index) => (
           <div
-            className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${service.color}`}
+            key={index}
+            className="p-6 rounded-lg border border-border bg-card hover:shadow-lg transition-shadow cursor-pointer official-card"
+            onClick={service.action}
           >
-            {/* Icon placeholder */}
-            <span className="text-xl font-bold">{service.title[0]}</span>
+            <div
+              className="w-12 h-12 rounded-full flex items-center justify-center mb-4 bg-primary/10 text-primary"
+            >
+              {/* Icon placeholder */}
+              <span className="text-xl font-bold">{service.title[0]}</span>
+            </div>
+            <h3 className="text-xl font-semibold mb-2">{service.title}</h3>
+            <p className="text-muted-foreground">{service.desc}</p>
           </div>
-          <h3 className="text-xl font-semibold mb-2">{service.title}</h3>
-          <p className="text-muted-foreground">{service.desc}</p>
-        </div>
-      ))}
+        ))}
+      </div>
+
     </div>
   );
 };
@@ -291,7 +328,7 @@ const NewFIRTab: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) => {
   return (
     <div className="max-w-2xl mx-auto bg-card p-8 rounded-lg border border-border official-card">
       <h2 className="text-2xl font-bold mb-6 text-blue-900">File a New FIR</h2>
-      
+
       {/* Legal Warning */}
       <div className="bg-amber-50 border-l-4 border-amber-500 p-4 mb-6">
         <div className="flex items-start">
@@ -566,15 +603,14 @@ const HistoryTab = () => {
               </div>
               <div className="flex flex-col items-end gap-2 min-w-[120px]">
                 <span
-                  className={`px-3 py-1 rounded-full text-xs font-bold uppercase self-end ${
-                    fir.status === "pending"
-                      ? "bg-yellow-100 text-yellow-800"
-                      : fir.status === "accepted"
-                        ? "bg-blue-100 text-blue-800"
-                        : fir.status === "resolved"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-gray-100"
-                  }`}
+                  className={`px-3 py-1 rounded-full text-xs font-bold uppercase self-end ${fir.status === "pending"
+                    ? "bg-gray-100 text-gray-800 border border-gray-200"
+                    : fir.status === "accepted" || fir.status === "in_progress"
+                      ? "bg-blue-100 text-blue-800 border border-blue-200"
+                      : fir.status === "resolved"
+                        ? "bg-primary text-secondary border border-primary"
+                        : "bg-gray-100"
+                    }`}
                 >
                   {fir.status.replace("_", " ")}
                 </span>
@@ -689,3 +725,5 @@ const ProfileTab = () => {
     </div>
   );
 };
+
+

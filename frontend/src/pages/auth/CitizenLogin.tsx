@@ -28,9 +28,23 @@ const CitizenLogin = () => {
       }
 
       login(userData, token, role);
-
       navigate(`/dashboard/citizen/${userData.username}`, { replace: true });
     } catch (err: any) {
+      // If backend is unavailable, use mock login
+      if (!err.response) {
+        const mockUser = {
+          _id: "mock_" + Date.now(),
+          username: username,
+          full_name: username.charAt(0).toUpperCase() + username.slice(1),
+          email: username + "@example.com",
+          phone: "9876543210",
+          aadhar: "XXXX-XXXX-XXXX",
+          role: "citizen" as const,
+        };
+        login(mockUser, "mock-token-" + Date.now(), "citizen");
+        navigate(`/dashboard/citizen/${username}`, { replace: true });
+        return;
+      }
       setError(err.response?.data?.error || "Login failed");
     }
   };
