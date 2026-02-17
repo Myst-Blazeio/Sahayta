@@ -227,7 +227,14 @@ window.suggestSections = async function () {
 
         if (data.results && data.results.length > 0) {
             data.results.forEach((result, index) => {
-                const confidence = Math.round((1 - result.distance) * 100);
+                // Use similarity if available (0-1), else fallback to distance-based (legacy)
+                const confidence = result.similarity
+                    ? Math.round(result.similarity * 100)
+                    : Math.round((1 - result.distance) * 100);
+
+                // Format section name: replace underscores with spaces
+                const sectionName = result.section.replace(/_/g, ' ');
+
                 const card = document.createElement('div');
                 card.className = "bg-white border rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow mb-2";
 
@@ -235,8 +242,8 @@ window.suggestSections = async function () {
 
                 card.innerHTML = `
                     <div class="flex justify-between items-start mb-1">
-                        <h5 class="font-bold text-gray-800 text-sm">${result.section}</h5>
-                        <span class="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">${confidence}% Match</span>
+                        <h5 class="font-bold text-gray-800 text-sm">${sectionName}</h5>
+                        <span class="text-xs ${confidence > 50 ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'} px-1.5 py-0.5 rounded">${confidence}% Match</span>
                     </div>
                     <p class="text-xs text-gray-600 line-clamp-2 mb-2" title="${result.description || ''}">${result.description || 'No description'}</p>
                     <div class="flex gap-2">
