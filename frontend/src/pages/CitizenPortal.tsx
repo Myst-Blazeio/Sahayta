@@ -5,16 +5,10 @@ import Footer from "../components/Footer";
 import axios from "axios";
 import { generateFIRPDF } from "../utils/pdfGenerator";
 import { motion, AnimatePresence } from "framer-motion";
-import AILegalSuggestion from "../components/AILegalSuggestion";
-import SafetyGuidelines from "../components/SafetyGuidelines";
 import AnonymousTip from "../components/AnonymousTip";
 import CommunityAlerts from "../components/CommunityAlerts";
 import FeedbackGrievance from "../components/FeedbackGrievance";
-import WomenSOS from "../components/WomenSOS";
 import SafeRouteFinder from "../components/SafeRouteFinder";
-import SelfDefenseResources from "../components/SelfDefenseResources";
-import ReportHarassment from "../components/ReportHarassment";
-import CyberHelpCenter from "../components/CyberHelpCenter";
 import {
   Bell,
   X,
@@ -26,11 +20,6 @@ import {
   Mail,
   FileText,
   Download,
-  PackageSearch,
-  MapPin,
-  Calendar,
-  Clock,
-  Eye,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { Notification, Station, FIR } from "../types";
@@ -100,7 +89,7 @@ const CitizenPortal = () => {
               >
                 <Bell className="w-6 h-6 text-foreground" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+                  <span className="absolute top-0 right-0 w-3 h-3 bg-primary rounded-full animate-pulse" />
                 )}
               </button>
               <AnimatePresence>
@@ -130,7 +119,7 @@ const CitizenPortal = () => {
                           >
                             <div className="mt-1">
                               <div
-                                className={`w-2 h-2 rounded-full ${!n.is_read ? "bg-blue-500" : "bg-transparent"}`}
+                                className={`w-2 h-2 rounded-full ${!n.is_read ? "bg-primary" : "bg-transparent"}`}
                               />
                             </div>
                             <div className="flex-1">
@@ -159,8 +148,8 @@ const CitizenPortal = () => {
         </header>
 
         {/* Tabs */}
-        <div className="flex space-x-1 bg-muted p-1 rounded-lg mb-8 max-w-2xl overflow-x-auto">
-          {["services", "new-fir", "history", "lost-found", "anonymous-tip", "community-alerts", "feedback", "women-sos", "safe-route", "self-defense", "report-harassment", "cyber-help", "ai-legal", "safety", "profile"].map((tab) => (
+        <div className="flex flex-wrap justify-center gap-2 bg-muted p-1 rounded-lg mb-8 w-full">
+          {["services", "new-fir", "history", "anonymous-tip", "community-alerts", "feedback", "safe-route", "profile"].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -176,17 +165,10 @@ const CitizenPortal = () => {
               {tab === "services" && "Services"}
               {tab === "new-fir" && "File FIR"}
               {tab === "history" && "My FIRs"}
-              {tab === "lost-found" && "Lost & Found"}
               {tab === "anonymous-tip" && "Anonymous Tip"}
               {tab === "community-alerts" && "Alerts"}
               {tab === "feedback" && "Feedback"}
-              {tab === "women-sos" && "SOS"}
               {tab === "safe-route" && "Safe Route"}
-              {tab === "self-defense" && "Self-Defense"}
-              {tab === "report-harassment" && "Report Abuse"}
-              {tab === "cyber-help" && "Cyber Help"}
-              {tab === "ai-legal" && "AI Legal"}
-              {tab === "safety" && "Safety"}
               {tab === "profile" && "Profile"}
             </button>
           ))}
@@ -206,17 +188,10 @@ const CitizenPortal = () => {
             <NewFIRTab onSuccess={() => setActiveTab("history")} />
           )}
           {activeTab === "history" && <HistoryTab />}
-          {activeTab === "lost-found" && <LostFoundTab />}
           {activeTab === "anonymous-tip" && <AnonymousTip />}
           {activeTab === "community-alerts" && <CommunityAlerts />}
           {activeTab === "feedback" && <FeedbackGrievance />}
-          {activeTab === "women-sos" && <WomenSOS />}
           {activeTab === "safe-route" && <SafeRouteFinder />}
-          {activeTab === "self-defense" && <SelfDefenseResources />}
-          {activeTab === "report-harassment" && <ReportHarassment />}
-          {activeTab === "cyber-help" && <CyberHelpCenter />}
-          {activeTab === "ai-legal" && <AILegalSuggestion />}
-          {activeTab === "safety" && <SafetyGuidelines />}
           {activeTab === "profile" && <ProfileTab />}
         </motion.div>
       </main>
@@ -234,73 +209,26 @@ const ServicesTab: React.FC<{ setActiveTab: (tab: string) => void }> = ({ setAct
       title: "File an FIR",
       desc: "Report cognizable offenses immediately.",
       action: () => setActiveTab("new-fir"),
-      color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-    },
-    {
-      title: "Lost & Found",
-      desc: "Report lost items or missing persons and track status.",
-      action: () => setActiveTab("lost-found"),
-      color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-    },
-    {
-      title: "AI Legal Section Finder",
-      desc: "Describe a crime and get relevant BNS section suggestions.",
-      action: () => setActiveTab("ai-legal"),
-      color: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400",
-    },
-    {
-      title: "Safety Guidelines",
-      desc: "Crime prevention tips & legal awareness for men and women.",
-      action: () => setActiveTab("safety"),
-      color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
     },
     {
       title: "Anonymous Tip",
       desc: "Report suspicious activity anonymously. No personal details required.",
       action: () => setActiveTab("anonymous-tip"),
-      color: "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400",
     },
     {
       title: "Community Alerts",
       desc: "Stay informed about crimes, safety warnings, and emergencies in your area.",
       action: () => setActiveTab("community-alerts"),
-      color: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400",
     },
     {
       title: "Feedback & Grievance",
       desc: "Submit feedback or complaints about police services and track resolution.",
       action: () => setActiveTab("feedback"),
-      color: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400",
-    },
-    {
-      title: "Women Emergency SOS",
-      desc: "Send instant SOS alert to police & emergency contacts with live location.",
-      action: () => setActiveTab("women-sos"),
-      color: "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400",
     },
     {
       title: "Safe Route Finder",
       desc: "AI-suggested safer travel routes based on crime data and hotspot analysis.",
       action: () => setActiveTab("safe-route"),
-      color: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400",
-    },
-    {
-      title: "Self-Defense Resources",
-      desc: "Guides, tips & legal rights on self-defense, emergency actions, and safety.",
-      action: () => setActiveTab("self-defense"),
-      color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-    },
-    {
-      title: "Report Harassment",
-      desc: "File complaints for harassment, stalking, domestic violence, or workplace abuse.",
-      action: () => setActiveTab("report-harassment"),
-      color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-    },
-    {
-      title: "Cyber Help Center",
-      desc: "One place to report digital safety issues with instant guidance and legal information.",
-      action: () => setActiveTab("cyber-help"),
-      color: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400",
     },
   ];
 
@@ -315,7 +243,7 @@ const ServicesTab: React.FC<{ setActiveTab: (tab: string) => void }> = ({ setAct
             onClick={service.action}
           >
             <div
-              className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${service.color}`}
+              className="w-12 h-12 rounded-full flex items-center justify-center mb-4 bg-primary/10 text-primary"
             >
               {/* Icon placeholder */}
               <span className="text-xl font-bold">{service.title[0]}</span>
@@ -683,11 +611,11 @@ const HistoryTab = () => {
               <div className="flex flex-col items-end gap-2 min-w-[120px]">
                 <span
                   className={`px-3 py-1 rounded-full text-xs font-bold uppercase self-end ${fir.status === "pending"
-                    ? "bg-yellow-100 text-yellow-800"
-                    : fir.status === "accepted"
-                      ? "bg-blue-100 text-blue-800"
+                    ? "bg-gray-100 text-gray-800 border border-gray-200"
+                    : fir.status === "accepted" || fir.status === "in_progress"
+                      ? "bg-blue-100 text-blue-800 border border-blue-200"
                       : fir.status === "resolved"
-                        ? "bg-green-100 text-green-800"
+                        ? "bg-primary text-secondary border border-primary"
                         : "bg-gray-100"
                     }`}
                 >
@@ -805,344 +733,4 @@ const ProfileTab = () => {
   );
 };
 
-interface LostFoundReport {
-  id: string;
-  type: "lost_item" | "missing_person";
-  title: string;
-  description: string;
-  date: string;
-  time: string;
-  location: string;
-  status: "submitted" | "under_review" | "found" | "closed";
-  submitted_at: string;
-}
 
-const LostFoundTab = () => {
-  const [reports, setReports] = useState<LostFoundReport[]>([]);
-  const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({
-    type: "lost_item" as "lost_item" | "missing_person",
-    title: "",
-    description: "",
-    date: "",
-    time: "",
-    location: "",
-  });
-  const [msg, setMsg] = useState("");
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const newReport: LostFoundReport = {
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-      ...formData,
-      status: "submitted",
-      submitted_at: new Date().toISOString(),
-    };
-    setReports([newReport, ...reports]);
-    setMsg("Report submitted successfully! You can track its status below.");
-    setFormData({
-      type: "lost_item",
-      title: "",
-      description: "",
-      date: "",
-      time: "",
-      location: "",
-    });
-    setTimeout(() => {
-      setShowForm(false);
-      setMsg("");
-    }, 2000);
-  };
-
-  const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
-    submitted: { bg: "bg-yellow-100", text: "text-yellow-800", label: "Submitted" },
-    under_review: { bg: "bg-blue-100", text: "text-blue-800", label: "Under Review" },
-    found: { bg: "bg-green-100", text: "text-green-800", label: "Found" },
-    closed: { bg: "bg-gray-100", text: "text-gray-800", label: "Closed" },
-  };
-
-  return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-amber-100 rounded-xl">
-            <PackageSearch className="w-6 h-6 text-amber-700" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Lost & Found</h2>
-            <p className="text-sm text-muted-foreground">
-              Report lost items or missing persons and track status
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className={`px-5 py-2.5 font-bold rounded-lg transition-all flex items-center gap-2 text-sm shadow-sm ${showForm
-            ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
-            : "bg-primary text-white hover:bg-primary/90"
-            }`}
-        >
-          {showForm ? (
-            <>
-              <X className="w-4 h-4" /> Cancel
-            </>
-          ) : (
-            <>
-              <FileText className="w-4 h-4" /> New Report
-            </>
-          )}
-        </button>
-      </div>
-
-      {/* Report Form */}
-      <AnimatePresence>
-        {showForm && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-            className="overflow-hidden"
-          >
-            <div className="bg-card p-6 rounded-xl border border-border shadow-sm official-card">
-              <h3 className="text-lg font-bold mb-5 text-gray-900 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-primary" />
-                File a Lost & Found Report
-              </h3>
-
-              {msg && (
-                <div className="p-3 rounded-lg mb-4 bg-green-100 text-green-800 text-sm font-medium flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4" />
-                  {msg}
-                </div>
-              )}
-
-              <form onSubmit={handleSubmit} className="space-y-5">
-                {/* Type Selection */}
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Report Type <span className="text-red-500">*</span>
-                  </label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setFormData({ ...formData, type: "lost_item" })
-                      }
-                      className={`p-4 rounded-xl border-2 text-left transition-all ${formData.type === "lost_item"
-                        ? "border-primary bg-primary/5 shadow-sm"
-                        : "border-gray-200 hover:border-gray-300"
-                        }`}
-                    >
-                      <PackageSearch
-                        className={`w-6 h-6 mb-2 ${formData.type === "lost_item"
-                          ? "text-primary"
-                          : "text-gray-400"
-                          }`}
-                      />
-                      <p className="font-semibold text-sm">Lost Item</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Wallet, phone, documents, etc.
-                      </p>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setFormData({ ...formData, type: "missing_person" })
-                      }
-                      className={`p-4 rounded-xl border-2 text-left transition-all ${formData.type === "missing_person"
-                        ? "border-primary bg-primary/5 shadow-sm"
-                        : "border-gray-200 hover:border-gray-300"
-                        }`}
-                    >
-                      <UserIcon
-                        className={`w-6 h-6 mb-2 ${formData.type === "missing_person"
-                          ? "text-primary"
-                          : "text-gray-400"
-                          }`}
-                      />
-                      <p className="font-semibold text-sm">Missing Person</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Report a missing person
-                      </p>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Title */}
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    {formData.type === "lost_item" ? "Item Name" : "Person's Name"}{" "}
-                    <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full p-2.5 rounded-lg border bg-input"
-                    placeholder={
-                      formData.type === "lost_item"
-                        ? "e.g. Blue leather wallet"
-                        : "e.g. Full name of the person"
-                    }
-                    required
-                    value={formData.title}
-                    onChange={(e) =>
-                      setFormData({ ...formData, title: e.target.value })
-                    }
-                  />
-                </div>
-
-                {/* Date & Time */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1 flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-                      Date Lost/Missing <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="date"
-                      className="w-full p-2.5 rounded-lg border bg-input"
-                      required
-                      value={formData.date}
-                      onChange={(e) =>
-                        setFormData({ ...formData, date: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1 flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                      Approximate Time
-                    </label>
-                    <input
-                      type="time"
-                      className="w-full p-2.5 rounded-lg border bg-input"
-                      value={formData.time}
-                      onChange={(e) =>
-                        setFormData({ ...formData, time: e.target.value })
-                      }
-                    />
-                  </div>
-                </div>
-
-                {/* Location */}
-                <div>
-                  <label className="block text-sm font-medium mb-1 flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
-                    Last Known Location <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full p-2.5 rounded-lg border bg-input"
-                    placeholder="e.g. Central Market, Near Gate 3"
-                    required
-                    value={formData.location}
-                    onChange={(e) =>
-                      setFormData({ ...formData, location: e.target.value })
-                    }
-                  />
-                </div>
-
-                {/* Description */}
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Detailed Description <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    className="w-full h-28 p-3 rounded-lg border bg-input"
-                    placeholder={
-                      formData.type === "lost_item"
-                        ? "Describe the item — color, brand, identifying marks, contents..."
-                        : "Describe the person — age, height, clothing, last seen details..."
-                    }
-                    required
-                    value={formData.description}
-                    onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
-                    }
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full py-3 bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 transition-colors shadow-sm"
-                >
-                  Submit Report
-                </button>
-              </form>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* My Reports */}
-      <div>
-        <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-          <Eye className="w-5 h-5 text-muted-foreground" />
-          My Reports
-        </h3>
-
-        {reports.length === 0 ? (
-          <div className="text-center py-12 bg-muted/50 rounded-xl border border-dashed border-gray-300">
-            <PackageSearch className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-muted-foreground font-medium">
-              No reports filed yet
-            </p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Click "New Report" to file a lost item or missing person report
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {reports.map((report) => {
-              const status = statusConfig[report.status];
-              return (
-                <div
-                  key={report.id}
-                  className="p-5 border rounded-xl bg-card shadow-sm official-card flex flex-col md:flex-row justify-between gap-4"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <span className="px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-600 uppercase">
-                        {report.type === "lost_item" ? "Lost Item" : "Missing Person"}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        #{report.id}
-                      </span>
-                    </div>
-                    <h4 className="font-bold text-lg text-gray-900">
-                      {report.title}
-                    </h4>
-                    <p className="text-sm text-foreground/70 line-clamp-2 mt-1">
-                      {report.description}
-                    </p>
-                    <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <MapPin className="w-3 h-3" />
-                        {report.location}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        {report.date}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-2 min-w-[120px]">
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${status.bg} ${status.text}`}
-                    >
-                      {status.label}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      Filed {new Date(report.submitted_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};

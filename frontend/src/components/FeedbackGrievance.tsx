@@ -38,22 +38,22 @@ const feedbackTypeConfig: Record<
     complaint: {
         label: "Complaint",
         icon: <ThumbsDown className="w-5 h-5" />,
-        color: "bg-red-100 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-400",
+        color: "bg-primary/5 text-primary border-primary/10",
     },
     grievance: {
         label: "Grievance",
         icon: <AlertCircle className="w-5 h-5" />,
-        color: "bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-400",
+        color: "bg-primary/5 text-primary border-primary/10",
     },
     suggestion: {
         label: "Suggestion",
         icon: <MessageCircle className="w-5 h-5" />,
-        color: "bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/30 dark:text-blue-400",
+        color: "bg-primary/5 text-primary border-primary/10",
     },
     appreciation: {
         label: "Appreciation",
         icon: <ThumbsUp className="w-5 h-5" />,
-        color: "bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400",
+        color: "bg-primary/5 text-primary border-primary/10",
     },
 };
 
@@ -67,10 +67,10 @@ const departmentOptions: { value: FeedbackDepartment; label: string }[] = [
 ];
 
 const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
-    submitted: { bg: "bg-yellow-100", text: "text-yellow-800", label: "Submitted" },
-    in_progress: { bg: "bg-blue-100", text: "text-blue-800", label: "In Progress" },
-    resolved: { bg: "bg-green-100", text: "text-green-800", label: "Resolved" },
-    closed: { bg: "bg-gray-100", text: "text-gray-800", label: "Closed" },
+    submitted: { bg: "bg-gray-100", text: "text-gray-800", label: "Submitted" },
+    in_progress: { bg: "bg-primary/10", text: "text-primary", label: "In Progress" },
+    resolved: { bg: "bg-green-50", text: "text-green-700", label: "Resolved" },
+    closed: { bg: "bg-gray-100", text: "text-gray-600", label: "Closed" },
 };
 
 const FeedbackGrievance: React.FC = () => {
@@ -119,8 +119,8 @@ const FeedbackGrievance: React.FC = () => {
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-violet-100 rounded-xl dark:bg-violet-900/30">
-                        <MessageSquarePlus className="w-6 h-6 text-violet-700 dark:text-violet-400" />
+                    <div className="p-2.5 bg-primary/10 rounded-xl">
+                        <MessageSquarePlus className="w-6 h-6 text-primary" />
                     </div>
                     <div>
                         <h2 className="text-2xl font-bold text-gray-900 dark:text-foreground">
@@ -138,8 +138,8 @@ const FeedbackGrievance: React.FC = () => {
                         setMsg("");
                     }}
                     className={`px-5 py-2.5 font-bold rounded-lg transition-all flex items-center gap-2 text-sm shadow-sm ${showForm
-                            ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                            : "bg-violet-600 text-white hover:bg-violet-700"
+                        ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        : "bg-primary text-white hover:bg-primary/90"
                         }`}
                 >
                     {showForm ? (
@@ -155,16 +155,16 @@ const FeedbackGrievance: React.FC = () => {
             </div>
 
             {/* Info Banner */}
-            <div className="bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/20 border border-violet-200 dark:border-violet-800 rounded-xl p-5">
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
                 <div className="flex items-start gap-3">
-                    <div className="p-2 bg-violet-100 dark:bg-violet-900/40 rounded-lg mt-0.5">
-                        <MessageSquarePlus className="w-5 h-5 text-violet-700 dark:text-violet-400" />
+                    <div className="p-2 bg-white border border-gray-200 rounded-lg mt-0.5">
+                        <MessageSquarePlus className="w-5 h-5 text-gray-700" />
                     </div>
                     <div>
-                        <h3 className="font-bold text-violet-800 dark:text-violet-300 text-sm uppercase tracking-wide">
+                        <h3 className="font-bold text-gray-900 text-sm uppercase tracking-wide">
                             Your Voice Matters
                         </h3>
-                        <p className="text-sm text-violet-700 dark:text-violet-400 mt-1 leading-relaxed">
+                        <p className="text-sm text-gray-600 mt-1 leading-relaxed">
                             Help us improve policing services. Submit complaints, suggestions, or
                             appreciation. Every submission is reviewed and tracked with a unique
                             grievance ID for transparency.
@@ -222,11 +222,11 @@ const FeedbackGrievance: React.FC = () => {
                                                             type="button"
                                                             onClick={() => setSelectedType(type)}
                                                             className={`p-3 rounded-xl border-2 text-center transition-all ${selectedType === type
-                                                                    ? "border-violet-500 bg-violet-50 dark:bg-violet-900/20 shadow-sm ring-1 ring-violet-200"
-                                                                    : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
+                                                                ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20"
+                                                                : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
                                                                 }`}
                                                         >
-                                                            <div className={`mx-auto mb-1.5 w-fit ${selectedType === type ? "text-violet-600" : "text-gray-400"}`}>
+                                                            <div className={`mx-auto mb-1.5 w-fit ${selectedType === type ? "text-primary" : "text-gray-400"}`}>
                                                                 {config.icon}
                                                             </div>
                                                             <p className="font-semibold text-xs">{config.label}</p>
@@ -312,8 +312,8 @@ const FeedbackGrievance: React.FC = () => {
                                                     >
                                                         <Star
                                                             className={`w-7 h-7 transition-colors ${star <= (hoverRating || rating)
-                                                                    ? "fill-amber-400 text-amber-400"
-                                                                    : "text-gray-300 dark:text-gray-600"
+                                                                ? "fill-amber-400 text-amber-400"
+                                                                : "text-gray-300 dark:text-gray-600"
                                                                 }`}
                                                         />
                                                     </button>
@@ -333,7 +333,7 @@ const FeedbackGrievance: React.FC = () => {
                                         {/* Submit */}
                                         <button
                                             type="submit"
-                                            className="w-full py-3 bg-violet-600 text-white font-bold rounded-lg hover:bg-violet-700 transition-colors shadow-sm flex items-center justify-center gap-2"
+                                            className="w-full py-3 bg-primary text-white font-bold rounded-lg hover:bg-primary/90 transition-colors shadow-sm flex items-center justify-center gap-2"
                                         >
                                             <Send className="w-4 h-4" />
                                             Submit Feedback

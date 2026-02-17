@@ -38,32 +38,32 @@ const alertTypeConfig: Record<
     crime: {
         label: "Crime Alert",
         icon: <Siren className="w-4 h-4" />,
-        color: "text-red-700 dark:text-red-400",
-        badgeBg: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
+        color: "text-primary",
+        badgeBg: "bg-primary/10 text-primary border-primary/20",
     },
     safety: {
         label: "Safety Warning",
         icon: <Shield className="w-4 h-4" />,
-        color: "text-amber-700 dark:text-amber-400",
-        badgeBg: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
+        color: "text-primary",
+        badgeBg: "bg-primary/10 text-primary border-primary/20",
     },
     emergency: {
         label: "Emergency",
         icon: <AlertTriangle className="w-4 h-4" />,
-        color: "text-rose-700 dark:text-rose-400",
-        badgeBg: "bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-800",
+        color: "text-destructive",
+        badgeBg: "bg-red-50 text-destructive border-red-200",
     },
     advisory: {
         label: "Advisory",
         icon: <Info className="w-4 h-4" />,
-        color: "text-blue-700 dark:text-blue-400",
-        badgeBg: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+        color: "text-primary",
+        badgeBg: "bg-primary/10 text-primary border-primary/20",
     },
     update: {
         label: "Update",
         icon: <Bell className="w-4 h-4" />,
-        color: "text-indigo-700 dark:text-indigo-400",
-        badgeBg: "bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800",
+        color: "text-primary",
+        badgeBg: "bg-primary/10 text-primary border-primary/20",
     },
 };
 
@@ -196,11 +196,11 @@ const CommunityAlerts: React.FC = () => {
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-rose-100 rounded-xl dark:bg-rose-900/30">
-                        <Megaphone className="w-6 h-6 text-rose-700 dark:text-rose-400" />
+                    <div className="p-2.5 bg-primary/10 rounded-xl">
+                        <Megaphone className="w-6 h-6 text-primary" />
                     </div>
                     <div>
-                        <h2 className="text-2xl font-bold text-gray-900 dark:text-foreground">
+                        <h2 className="text-2xl font-bold text-gray-900">
                             Community Alerts
                         </h2>
                         <p className="text-sm text-muted-foreground">
@@ -218,8 +218,8 @@ const CommunityAlerts: React.FC = () => {
                     <button
                         onClick={() => setShowFilters(!showFilters)}
                         className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all border ${showFilters
-                                ? "bg-gray-200 text-gray-700 border-gray-300"
-                                : "bg-card text-foreground border-border hover:bg-accent"
+                            ? "bg-gray-200 text-gray-700 border-gray-300"
+                            : "bg-card text-foreground border-border hover:bg-accent"
                             }`}
                     >
                         <Filter className="w-4 h-4" />
@@ -242,8 +242,8 @@ const CommunityAlerts: React.FC = () => {
                             <button
                                 onClick={() => setFilterType("all")}
                                 className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${filterType === "all"
-                                        ? "bg-foreground text-background border-foreground"
-                                        : "bg-card text-foreground border-border hover:bg-accent"
+                                    ? "bg-foreground text-background border-foreground"
+                                    : "bg-card text-foreground border-border hover:bg-accent"
                                     }`}
                             >
                                 All ({mockAlerts.length})
@@ -256,8 +256,8 @@ const CommunityAlerts: React.FC = () => {
                                         key={type}
                                         onClick={() => setFilterType(type)}
                                         className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border flex items-center gap-1.5 ${filterType === type
-                                                ? config.badgeBg
-                                                : "bg-card text-muted-foreground border-border hover:bg-accent"
+                                            ? config.badgeBg
+                                            : "bg-card text-muted-foreground border-border hover:bg-accent"
                                             }`}
                                     >
                                         {config.icon}

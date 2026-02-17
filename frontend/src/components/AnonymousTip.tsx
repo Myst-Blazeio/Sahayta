@@ -39,32 +39,32 @@ const categoryConfig: Record<
     suspicious_activity: {
         label: "Suspicious Activity",
         icon: "👁️",
-        color: "bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-400",
+        color: "bg-primary/5 text-primary border-primary/10 hover:bg-primary/10",
     },
     drug_related: {
         label: "Drug-Related",
         icon: "🚫",
-        color: "bg-red-100 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-400",
+        color: "bg-primary/5 text-primary border-primary/10 hover:bg-primary/10",
     },
     theft_robbery: {
         label: "Theft / Robbery",
         icon: "🔒",
-        color: "bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400",
+        color: "bg-primary/5 text-primary border-primary/10 hover:bg-primary/10",
     },
     cybercrime: {
         label: "Cybercrime",
         icon: "💻",
-        color: "bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-900/30 dark:text-purple-400",
+        color: "bg-primary/5 text-primary border-primary/10 hover:bg-primary/10",
     },
     corruption: {
         label: "Corruption",
         icon: "⚖️",
-        color: "bg-rose-100 text-rose-700 border-rose-300 dark:bg-rose-900/30 dark:text-rose-400",
+        color: "bg-primary/5 text-primary border-primary/10 hover:bg-primary/10",
     },
     other: {
         label: "Other",
         icon: "📋",
-        color: "bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-900/30 dark:text-gray-400",
+        color: "bg-primary/5 text-primary border-primary/10 hover:bg-primary/10",
     },
 };
 
@@ -138,11 +138,11 @@ const AnonymousTip: React.FC = () => {
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-teal-100 rounded-xl dark:bg-teal-900/30">
-                        <ShieldOff className="w-6 h-6 text-teal-700 dark:text-teal-400" />
+                    <div className="p-2.5 bg-primary/10 rounded-xl">
+                        <ShieldOff className="w-6 h-6 text-primary" />
                     </div>
                     <div>
-                        <h2 className="text-2xl font-bold text-gray-900 dark:text-foreground">
+                        <h2 className="text-2xl font-bold text-gray-900">
                             Anonymous Tip Submission
                         </h2>
                         <p className="text-sm text-muted-foreground">
@@ -157,8 +157,8 @@ const AnonymousTip: React.FC = () => {
                         setMsg("");
                     }}
                     className={`px-5 py-2.5 font-bold rounded-lg transition-all flex items-center gap-2 text-sm shadow-sm ${showForm
-                        ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                        : "bg-teal-600 text-white hover:bg-teal-700"
+                        ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        : "bg-primary text-white hover:bg-primary/90"
                         }`}
                 >
                     {showForm ? (
@@ -174,16 +174,16 @@ const AnonymousTip: React.FC = () => {
             </div>
 
             {/* Privacy Banner */}
-            <div className="bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-teal-900/20 dark:to-cyan-900/20 border border-teal-200 dark:border-teal-800 rounded-xl p-5">
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
                 <div className="flex items-start gap-3">
-                    <div className="p-2 bg-teal-100 dark:bg-teal-900/40 rounded-lg mt-0.5">
-                        <Lock className="w-5 h-5 text-teal-700 dark:text-teal-400" />
+                    <div className="p-2 bg-white border border-gray-200 rounded-lg mt-0.5">
+                        <Lock className="w-5 h-5 text-gray-700" />
                     </div>
                     <div>
-                        <h3 className="font-bold text-teal-800 dark:text-teal-300 text-sm uppercase tracking-wide">
+                        <h3 className="font-bold text-gray-900 text-sm uppercase tracking-wide">
                             Your Privacy is Guaranteed
                         </h3>
-                        <p className="text-sm text-teal-700 dark:text-teal-400 mt-1 leading-relaxed">
+                        <p className="text-sm text-gray-600 mt-1 leading-relaxed">
                             This form does <strong>not</strong> collect your name, phone
                             number, email, IP address, or any identifying information. All
                             tips are processed anonymously. You are helping make your
@@ -355,7 +355,7 @@ const AnonymousTip: React.FC = () => {
                                         {/* Submit */}
                                         <button
                                             type="submit"
-                                            className="w-full py-3 bg-teal-600 text-white font-bold rounded-lg hover:bg-teal-700 transition-colors shadow-sm flex items-center justify-center gap-2"
+                                            className="w-full py-3 bg-primary text-white font-bold rounded-lg hover:bg-primary/90 transition-colors shadow-sm flex items-center justify-center gap-2"
                                         >
                                             <Send className="w-4 h-4" />
                                             Submit Anonymous Tip

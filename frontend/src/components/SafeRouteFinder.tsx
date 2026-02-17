@@ -162,12 +162,13 @@ const SafeRouteFinder: React.FC = () => {
     return (
         <div className="space-y-8">
             {/* Header */}
+            {/* Header */}
             <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-cyan-100 rounded-xl dark:bg-cyan-900/30">
-                    <Route className="w-6 h-6 text-cyan-700 dark:text-cyan-400" />
+                <div className="p-2.5 bg-primary/10 rounded-xl">
+                    <Route className="w-6 h-6 text-primary" />
                 </div>
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-foreground">
+                    <h2 className="text-2xl font-bold text-gray-900">
                         Safe Route Finder
                     </h2>
                     <p className="text-sm text-muted-foreground">
@@ -177,16 +178,16 @@ const SafeRouteFinder: React.FC = () => {
             </div>
 
             {/* Info Banner */}
-            <div className="bg-gradient-to-r from-cyan-50 to-sky-50 dark:from-cyan-900/20 dark:to-sky-900/20 border border-cyan-200 dark:border-cyan-800 rounded-xl p-5">
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
                 <div className="flex items-start gap-3">
-                    <div className="p-2 bg-cyan-100 dark:bg-cyan-900/40 rounded-lg mt-0.5">
-                        <Shield className="w-5 h-5 text-cyan-700 dark:text-cyan-400" />
+                    <div className="p-2 bg-white border border-gray-200 rounded-lg mt-0.5">
+                        <Shield className="w-5 h-5 text-gray-700" />
                     </div>
                     <div>
-                        <h3 className="font-bold text-cyan-800 dark:text-cyan-300 text-sm uppercase tracking-wide">
+                        <h3 className="font-bold text-gray-900 text-sm uppercase tracking-wide">
                             AI-Powered Safety Analysis
                         </h3>
-                        <p className="text-sm text-cyan-700 dark:text-cyan-400 mt-1 leading-relaxed">
+                        <p className="text-sm text-gray-600 mt-1 leading-relaxed">
                             Routes are analyzed using real-time crime data, CCTV coverage maps,
                             street lighting data, police patrol schedules, and historical crime
                             hotspot patterns to recommend the safest path.
@@ -246,11 +247,11 @@ const SafeRouteFinder: React.FC = () => {
                                     type="button"
                                     onClick={() => setTimeOfDay(time.value)}
                                     className={`p-3 rounded-xl border-2 text-center transition-all ${timeOfDay === time.value
-                                            ? "border-cyan-500 bg-cyan-50 dark:bg-cyan-900/20 shadow-sm"
-                                            : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
+                                        ? "border-primary bg-primary/5 shadow-sm"
+                                        : "border-gray-200 hover:border-gray-300"
                                         }`}
                                 >
-                                    <div className={`mx-auto mb-1 ${timeOfDay === time.value ? "text-cyan-600" : "text-gray-400"}`}>
+                                    <div className={`mx-auto mb-1 ${timeOfDay === time.value ? "text-primary" : "text-gray-400"}`}>
                                         {time.icon}
                                     </div>
                                     <p className="font-semibold text-xs">{time.label}</p>
@@ -263,7 +264,7 @@ const SafeRouteFinder: React.FC = () => {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full py-3 bg-cyan-600 text-white font-bold rounded-lg hover:bg-cyan-700 transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-60"
+                        className="w-full py-3 bg-primary text-white font-bold rounded-lg hover:bg-primary/90 transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-60"
                     >
                         {loading ? (
                             <>
@@ -325,7 +326,7 @@ const SafeRouteFinder: React.FC = () => {
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: idx * 0.1 }}
                                         onClick={() => setSelectedRoute(isSelected ? null : route)}
-                                        className={`border-l-4 ${safety.border} border rounded-xl bg-card shadow-sm cursor-pointer transition-all official-card overflow-hidden ${isSelected ? "ring-2 ring-cyan-300 shadow-md" : "hover:shadow-md"
+                                        className={`border-l-4 ${safety.border} border rounded-xl bg-card shadow-sm cursor-pointer transition-all official-card overflow-hidden ${isSelected ? "ring-2 ring-primary/30 shadow-md" : "hover:shadow-md"
                                             }`}
                                     >
                                         {/* Route Header */}
@@ -334,7 +335,7 @@ const SafeRouteFinder: React.FC = () => {
                                                 <div className="flex-1">
                                                     <div className="flex items-center gap-2 mb-2 flex-wrap">
                                                         {idx === 0 && (
-                                                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400 uppercase">
+                                                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary uppercase">
                                                                 Recommended
                                                             </span>
                                                         )}
@@ -442,8 +443,8 @@ const SafeRouteFinder: React.FC = () => {
                                                                     <div
                                                                         key={i}
                                                                         className={`text-sm p-3 rounded-lg ${tip.startsWith("⚠️")
-                                                                                ? "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800"
-                                                                                : "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800"
+                                                                            ? "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800"
+                                                                            : "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800"
                                                                             }`}
                                                                     >
                                                                         {tip}
