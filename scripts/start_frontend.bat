@@ -15,7 +15,7 @@ if %errorlevel% neq 0 (
 )
 
 echo Starting Frontend...
-call npm run dev
+start "Frontend" npm run dev -- --open
 if %errorlevel% neq 0 (
     echo Error: npm run dev failed
     pause
