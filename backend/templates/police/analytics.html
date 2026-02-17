@@ -74,8 +74,9 @@
             <h3 class="font-bold text-gray-900 mb-4">Crime Rate Forecast</h3>
             <p class="text-sm text-gray-500 mb-4">AI-predicted crime trends for your jurisdiction in the coming months.</p>
             <!-- Here we can reuse the chart or a more advanced one -->
-            <div class="h-64 flex items-center justify-center bg-gray-50 rounded border border-dashed border-gray-300">
-                <p class="text-gray-400">Advanced Analytics Module Loading...</p>
+            <!-- Advanced Analytics Module - Geospatial Map -->
+            <div class="h-[600px] bg-white rounded border border-gray-300 overflow-hidden">
+                <iframe src="{{ url_for('police.crime_map') }}" width="100%" height="600px" style="border:none;"></iframe>
             </div>
         </div>
     </main>

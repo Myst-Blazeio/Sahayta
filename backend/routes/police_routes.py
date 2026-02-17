@@ -1,4 +1,5 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, make_response, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, make_response, jsonify, send_from_directory
+import os
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, set_access_cookies, unset_jwt_cookies
 from werkzeug.security import check_password_hash, generate_password_hash
 from db import get_db
@@ -206,7 +207,18 @@ def analytics():
         'rejected': rejected_firs + rejected_active
     }
     
+    
     return render_template('police/analytics.html', user=user, stats=stats)
+
+@police_bp.route('/analytics/map')
+@jwt_required()
+def crime_map():
+    # Helper to get absolute path to scripts/output
+    # Assuming app.py is in backend/ and this file is in backend/routes/
+    # backend/routes/../scripts/output -> backend/scripts/output
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    output_dir = os.path.join(current_dir, '..', 'scripts', 'output')
+    return send_from_directory(output_dir, 'kolkata_crime_risk_map.html')
 
 @police_bp.route('/profile', methods=['GET', 'POST'])
 @jwt_required()

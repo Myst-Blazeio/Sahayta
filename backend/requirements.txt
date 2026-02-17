@@ -54,3 +54,5 @@ urllib3>=2.6.3
 Werkzeug>=3.1.5
 gunicorn>=21.2.0
 deep-translator>=1.11.4
+folium>=0.15.0
+matplotlib>=3.8.0
