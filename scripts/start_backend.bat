@@ -1,26 +1,104 @@
 @echo off
-cd /d "%~dp0..\backend"
+setlocal
 
-if not exist "final_venv" (
-    echo Creating virtual environment...
-    python -m venv final_venv
+:: Navigate to the backend directory
+cd /d "%~dp0..\backend"
+if %errorlevel% neq 0 (
+    echo [ERROR] Could not find backend directory at %~dp0..\backend
+    pause
+    exit /b 1
 )
 
-call final_venv\Scripts\activate
+set "VENV_DIR=final_venv"
 
-echo Installing dependencies...
-pip install -r requirements.txt
+:: Check if Python is installed
+python --version >nul 2>&1
+if %errorlevel% neq 0 (
+    echo [ERROR] Python is not installed or not in PATH.
+    pause
+    exit /b 1
+)
 
-echo.
-echo Starting Backend Server...
-echo The browser will launch automatically once the server is ready (listening on port 5000).
-echo.
+:: Check if virtual environment exists
+if not exist "%VENV_DIR%" (
+    echo [INFO] Creating virtual environment...
+    python -m venv "%VENV_DIR%"
+    if %errorlevel% neq 0 (
+        echo [ERROR] Failed to create virtual environment.
+        pause
+        exit /b 1
+    )
+)
 
-:: Launch a parallel process that waits for port 5000 then opens the browser
-:: Checks every 2 seconds, times out after 60 seconds
-start "" /B powershell -Command "$i=0; while (!(Test-NetConnection localhost -Port 5000 -WarningAction SilentlyContinue).TcpTestSucceeded) { Start-Sleep -Seconds 2; $i++; if ($i -gt 30) { break } }; if ($i -le 30) { Start-Process 'http://localhost:5000/police/login' }"
+:: Activate virtual environment
+echo [INFO] Activating virtual environment...
+call "%VENV_DIR%\Scripts\activate"
+if %errorlevel% neq 0 (
+    echo [ERROR] Failed to activate virtual environment.
+    pause
+    exit /b 1
+)
 
-:: Run the server in the foreground so logs are visible
+:: Install dependencies
+echo [INFO] Installing dependencies...
+python -m pip install --upgrade pip
+if exist "requirements.txt" (
+    pip install -r requirements.txt
+    if %errorlevel% neq 0 (
+        echo [ERROR] Failed to install dependencies.
+        pause
+        exit /b 1
+    )
+) else (
+    echo [WARNING] requirements.txt not found.
+)
+
+:: Check MongoDB Connection
+echo [INFO] Checking MongoDB connection...
+python verify_db.py
+if %errorlevel% neq 0 (
+    echo [WARNING] MongoDB connection failed. Attempting to start MongoDB...
+    
+    :: Attempt to start MongoDB service if it exists, otherwise run mongod directly
+    net start MongoDB >nul 2>&1
+    if %errorlevel% neq 0 (
+        echo [INFO] MongoDB service not found or access denied. Starting mongod.exe directly...
+        if exist "D:\MongoDB\bin\mongod.exe" (
+            start /b "" "D:\MongoDB\bin\mongod.exe" --config "D:\MongoDB\bin\mongod.cfg"
+            echo [INFO] MongoDB started in background. Waiting for initialization...
+            timeout /t 5 /nobreak >nul
+        ) else (
+            echo [ERROR] MongoDB executable not found at D:\MongoDB\bin\mongod.exe
+            echo [HINT] Please ensure MongoDB is installed and the path is correct.
+            pause
+            exit /b 1
+        )
+    ) else (
+        echo [INFO] MongoDB service started successfully.
+        timeout /t 3 /nobreak >nul
+    )
+
+    :: Verify connection again
+    echo [INFO] Verifying connection after startup attempt...
+    python verify_db.py
+    if errorlevel 1 (
+        echo [ERROR] MongoDB startup/connection failed.
+        echo [HINT] Ensure MONGO_URI is set correctly in backend/.env
+        pause
+        exit /b 1
+    )
+)
+
+:: Start the server and open the browser
+echo [INFO] Starting backend server...
+start "" "http://localhost:5000/police/login"
 python app.py
 
+if %errorlevel% neq 0 (
+    echo [ERROR] Backend server crashed.
+    pause
+    exit /b 1
+)
+
 pause
+endlocal
