@@ -81,6 +81,8 @@ def submit_fir():
         fir_entry['complainant_aadhar'] = data.get('complainant_aadhar', 'N/A')
         fir_entry['complainant_email'] = data.get('complainant_email', 'N/A')
         fir_entry['source'] = 'police_manual'
+        fir_entry['received_by'] = str(user_id)
+        print(f"DEBUG: Manual FIR received by officer {user_id}")
     else:
         # Citizen Entry - Fetch details
         user = db.users.find_one({'_id': ObjectId(user_id)})
@@ -258,6 +260,9 @@ def update_fir(fir_id):
             
         if status == 'resolved':
             # Move to archives
+            current_user_id = str(get_jwt_identity())
+            update_data['resolved_by'] = current_user_id
+            print(f"DEBUG: FIR {fir_id} resolved by officer {current_user_id}")
             archived_fir = old_fir.copy()
             archived_fir.update(update_data)
             

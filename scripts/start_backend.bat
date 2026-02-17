@@ -57,11 +57,36 @@ if exist "requirements.txt" (
 echo [INFO] Checking MongoDB connection...
 python verify_db.py
 if %errorlevel% neq 0 (
-    echo [ERROR] MongoDB check failed.
-    echo [HINT] Ensure MongoDB is running or MONGO_URI is set correctly in backend/.env
-    echo [HINT] If using local MongoDB, make sure MongoDB Community Server is installed and the service is started.
-    pause
-    exit /b 1
+    echo [WARNING] MongoDB connection failed. Attempting to start MongoDB...
+    
+    :: Attempt to start MongoDB service if it exists, otherwise run mongod directly
+    net start MongoDB >nul 2>&1
+    if %errorlevel% neq 0 (
+        echo [INFO] MongoDB service not found or access denied. Starting mongod.exe directly...
+        if exist "D:\MongoDB\bin\mongod.exe" (
+            start /b "" "D:\MongoDB\bin\mongod.exe" --config "D:\MongoDB\bin\mongod.cfg"
+            echo [INFO] MongoDB started in background. Waiting for initialization...
+            timeout /t 5 /nobreak >nul
+        ) else (
+            echo [ERROR] MongoDB executable not found at D:\MongoDB\bin\mongod.exe
+            echo [HINT] Please ensure MongoDB is installed and the path is correct.
+            pause
+            exit /b 1
+        )
+    ) else (
+        echo [INFO] MongoDB service started successfully.
+        timeout /t 3 /nobreak >nul
+    )
+
+    :: Verify connection again
+    echo [INFO] Verifying connection after startup attempt...
+    python verify_db.py
+    if errorlevel 1 (
+        echo [ERROR] MongoDB startup/connection failed.
+        echo [HINT] Ensure MONGO_URI is set correctly in backend/.env
+        pause
+        exit /b 1
+    )
 )
 
 :: Start the server and open the browser
