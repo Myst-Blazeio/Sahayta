@@ -84,6 +84,9 @@ class MLService:
     def predict_bns(self, query, k=5):
         if self.bns_index and self.bns_model and self.bns_df is not None:
             try:
+                # Gibberish detection disabled per user request
+                # if len(query) > 10: ...
+
                 query_vec = self.bns_model.encode([query]).astype(np.float32)
                 distances, indices = self.bns_index.search(query_vec, k)
                 
@@ -97,8 +100,18 @@ class MLService:
                         clean_dict = {k: (v if pd.notna(v) else None) for k, v in item_dict.items()}
                         
                         result = clean_dict
-                        result['distance'] = float(distances[0][i])
+                        
+                        # Convert L2 distance to Similarity Score (0 to 1)
+                        # valid range for L2 is 0 to infinity. 
+                        # 1 / (1 + distance) maps 0->1, inf->0. 
+                        # This avoids negative percentages.
+                        dist = float(distances[0][i])
+                        similarity = 1 / (1 + dist)
+                        
+                        result['distance'] = dist
+                        result['similarity'] = similarity
                         result['rank'] = i + 1
+                        
                         # Ensure core fields exist for frontend
                         if 'section' not in result and 'Section' in result:
                             result['section'] = result['Section']

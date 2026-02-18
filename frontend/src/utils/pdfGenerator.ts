@@ -60,16 +60,15 @@ export const generateFIRPDF = (fir: FIR) => {
     });
 
     // Description
-    const finalY = (doc as any).lastAutoTable.finalY + 10;
-    doc.setFont("helvetica", "bold");
-    doc.text("Incident Description:", 20, finalY + 5);
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    const splitDescription = doc.splitTextToSize(fir.original_text, 170);
-    doc.text(splitDescription, 20, finalY + 12);
-
-    const descHeight = splitDescription.length * 5; // Approx height
+    // Incident Description Table
+    autoTable(doc, {
+        startY: (doc as any).lastAutoTable.finalY + 10,
+        head: [["Incident Description"]],
+        body: [[fir.original_text]],
+        theme: "grid",
+        headStyles: { fillColor: [41, 128, 185] },
+        styles: { cellWidth: 'auto', overflow: 'linebreak' }, // Ensure wrapping
+    });
 
     // Police Notes (If available)
     if (fir.police_notes) {
