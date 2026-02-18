@@ -4,7 +4,9 @@ from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from db import get_db
 from datetime import datetime
 from deep_translator import GoogleTranslator
+from ml_service import ml_service
 import uuid
+import pandas as pd
 from bson import ObjectId
 
 fir_bp = Blueprint('fir', __name__)
@@ -46,6 +48,14 @@ def submit_fir():
     fir_id = str(uuid.uuid4())
     current_time = datetime.utcnow()
     
+    # ML Prediction for BNS Sections
+    ai_suggestions = []
+    try:
+        if translated_text:
+            ai_suggestions = ml_service.predict_bns(translated_text, k=5)
+    except Exception as e:
+        print(f"ML Prediction failed in fir_routes: {e}")
+
     fir_entry = {
         '_id': fir_id,
         'user_id': user_id,
@@ -58,7 +68,8 @@ def submit_fir():
         'station_id': str(station_id) if station_id else None,
         'status': 'pending',
         'submission_date': current_time,
-        'last_updated': current_time
+        'last_updated': current_time,
+        'ai_suggestions': ai_suggestions
     }
     
     db = get_db()
@@ -70,6 +81,8 @@ def submit_fir():
         fir_entry['complainant_aadhar'] = data.get('complainant_aadhar', 'N/A')
         fir_entry['complainant_email'] = data.get('complainant_email', 'N/A')
         fir_entry['source'] = 'police_manual'
+        fir_entry['received_by'] = str(user_id)
+        print(f"DEBUG: Manual FIR received by officer {user_id}")
     else:
         # Citizen Entry - Fetch details
         user = db.users.find_one({'_id': ObjectId(user_id)})
@@ -247,6 +260,9 @@ def update_fir(fir_id):
             
         if status == 'resolved':
             # Move to archives
+            current_user_id = str(get_jwt_identity())
+            update_data['resolved_by'] = current_user_id
+            print(f"DEBUG: FIR {fir_id} resolved by officer {current_user_id}")
             archived_fir = old_fir.copy()
             archived_fir.update(update_data)
             
