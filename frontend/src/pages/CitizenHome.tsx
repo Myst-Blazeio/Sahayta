@@ -95,6 +95,58 @@ const CitizenHome = () => {
           </div>
         </div>
       </section>
+
+      {/* Emergency Help & Contacts Section */}
+      <section className="py-12 px-4 bg-white border-t border-gray-100">
+        <div className="container mx-auto max-w-6xl">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Phone className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800">
+                Emergency Help & Contacts
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">
+                Quick access to emergency services — available 24/7
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+            {emergencyContacts.map((contact) => {
+              const IconComponent = contact.icon;
+              return (
+                <a
+                  key={contact.number}
+                  href={`tel:${contact.number}`}
+                  className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white p-5 transition-all duration-300 hover:shadow-lg hover:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
+
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary transition-colors">
+                      <IconComponent className="w-6 h-6 text-primary group-hover:text-white transition-colors" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-base text-gray-900 group-hover:text-primary transition-colors">
+                        {contact.name}
+                      </h3>
+                      <p className="text-2xl font-extrabold tracking-wide text-gray-900 mt-1">
+                        {contact.number}
+                      </p>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-gray-500 mt-3 leading-relaxed">
+                    {contact.description}
+                  </p>
+                </a>
+              );
+            })}
+          </div>
+        </div>
+      </section>
     </div>
   );
 };
