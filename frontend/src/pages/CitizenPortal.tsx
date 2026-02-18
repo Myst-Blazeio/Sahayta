@@ -151,7 +151,7 @@ const CitizenPortal = () => {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`py-2 px-4 rounded-md text-sm font-medium transition-all whitespace-nowrap ${activeTab === tab
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${activeTab === tab
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:bg-background/50"
                 }`}
@@ -288,6 +288,9 @@ const NewFIRTab: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) => {
   const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, incident_time: e.target.value });
     validateDateTime(formData.incident_date, e.target.value);
+    if (e.target.value) {
+      e.target.blur(); // Automatically close native time picker only when complete
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -591,11 +594,11 @@ const HistoryTab = () => {
               <div className="flex flex-col items-end gap-2 min-w-[120px]">
                 <span
                   className={`px-3 py-1 rounded-full text-xs font-bold uppercase self-end ${fir.status === "pending"
-                    ? "bg-gray-100 text-gray-800 border border-gray-200"
-                    : fir.status === "accepted" || fir.status === "in_progress"
-                      ? "bg-blue-100 text-blue-800 border border-blue-200"
+                    ? "bg-yellow-100 text-yellow-800"
+                    : fir.status === "accepted"
+                      ? "bg-blue-100 text-blue-800"
                       : fir.status === "resolved"
-                        ? "bg-primary text-secondary border border-primary"
+                        ? "bg-green-100 text-green-800"
                         : "bg-gray-100"
                     }`}
                 >
