@@ -31,6 +31,11 @@
                 <i data-lucide="archive"></i>
                 <span class="font-medium">Archives</span>
             </a>
+            <a href="{{ url_for('police.alerts') }}"
+                class="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg">
+                <i data-lucide="megaphone"></i>
+                <span class="font-medium">Community Alerts</span>
+            </a>
         </nav>
         <div class="p-4 border-t">
             <div class="flex items-center gap-3 mb-4 cursor-pointer hover:bg-gray-50 p-2 rounded"
@@ -67,12 +72,10 @@
         <div class="flex gap-4 mb-6">
             <input type="text" id="searchFirs" placeholder="Search by FIR ID or Name..."
                 class="border rounded-md px-4 py-2 w-full max-w-sm">
-            <select id="filterStatus" class="border rounded-md px-4 py-2">
-                <option value="">All Statuses</option>
+            <select id="filterStatus" onchange="filterTable()" class="border rounded-md px-4 py-2">
+                <option value="">All Status (Active)</option>
                 <option value="pending">Pending</option>
                 <option value="in_progress">In Progress</option>
-                <option value="resolved">Resolved</option>
-                <option value="rejected">Rejected</option>
             </select>
         </div>
 
@@ -141,7 +144,6 @@
                 </button>
             </div>
             <form id="manualFIRForm" onsubmit="submitManualFIR(event)" class="space-y-4">
-                <input type="hidden" name="station_id" value="{{ user.station_id }}">
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Complainant Name</label>
@@ -157,13 +159,23 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Aadhaar Number</label>
-                        <input type="text" name="complainant_aadhar"
+                        <input type="text" name="complainant_aadhar" required
                             class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Email Address</label>
                         <input type="email" name="complainant_email"
                             class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-blue-700">Complainant Username (for Portal)</label>
+                        <input type="text" name="complainant_username" required
+                            class="mt-1 block w-full border border-blue-300 rounded-md shadow-sm py-2 px-3 bg-blue-50">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-blue-700">Portal Password</label>
+                        <input type="password" name="complainant_password" required
+                            class="mt-1 block w-full border border-blue-300 rounded-md shadow-sm py-2 px-3 bg-blue-50">
                     </div>
                 </div>
                 <div>

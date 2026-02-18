@@ -8,7 +8,7 @@ export const generateFIRPDF = (fir: FIR) => {
     // Header
     doc.setFontSize(22);
     doc.setTextColor(41, 128, 185);
-    doc.text("FIR Report", 105, 20, { align: "center" });
+    doc.text("FIR Progress Report", 105, 20, { align: "center" });
 
     doc.setFontSize(12);
     doc.setTextColor(100);
@@ -76,7 +76,7 @@ export const generateFIRPDF = (fir: FIR) => {
         const notesY = finalY + 12 + descHeight + 10;
         doc.setFont("helvetica", "bold");
         doc.setFontSize(12);
-        doc.text("Police Notes:", 20, notesY);
+        doc.text("Current Action Taken:", 20, notesY);
 
         doc.setFont("helvetica", "normal");
         doc.setFontSize(10);

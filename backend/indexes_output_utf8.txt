@@ -1,0 +1,6 @@
+﻿MongoDB Configured with URI: mongodb://localhost:27017/fir_automation
+Checking indexes for 'users' collection:
+SON([('v', 2), ('key', SON([('_id', 1)])), ('name', '_id_')])
+
+Checking indexes for 'police' collection:
+SON([('v', 2), ('key', SON([('_id', 1)])), ('name', '_id_')])

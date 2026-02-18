@@ -8,6 +8,7 @@ from ml_service import ml_service
 import uuid
 import pandas as pd
 from bson import ObjectId
+from werkzeug.security import generate_password_hash
 
 fir_bp = Blueprint('fir', __name__)
 
@@ -75,14 +76,60 @@ def submit_fir():
     db = get_db()
     
     if role == 'police':
-        # Manual Entry by Police
+        # Manual Entry by Police - Fetch their current station ID dynamically
+        police_officer = db.police.find_one({'_id': ObjectId(user_id)})
+        police_station_id = None
+        if police_officer and police_officer.get('station_id'):
+            police_station_id = str(police_officer['station_id'])
+        else:
+            police_station_id = str(claims.get('station_id'))
+        
+        fir_entry['station_id'] = police_station_id
+        
+        # Complainant Onboarding / Linking
+        comp_username = data.get('complainant_username')
+        comp_password = data.get('complainant_password')
+        
+        citizen_user_id = None
+        
+        if comp_username:
+            try:
+                # Check if user already exists
+                existing_user = db.users.find_one({'username': comp_username})
+                if existing_user:
+                    citizen_user_id = str(existing_user['_id'])
+                    print(f"DEBUG: Linked manual FIR to existing citizen {comp_username}")
+                else:
+                    # Create new citizen user
+                    new_citizen = {
+                        'username': comp_username,
+                        'password_hash': generate_password_hash(comp_password) if comp_password else generate_password_hash('password123'),
+                        'full_name': data.get('complainant_name', 'Unknown'),
+                        'aadhar': data.get('complainant_aadhar', 'N/A'),
+                        'phone': data.get('complainant_phone', 'N/A'),
+                        'email': data.get('complainant_email', 'N/A'),
+                        'role': 'citizen',
+                        'created_at': datetime.utcnow()
+                    }
+                    result = db.users.insert_one(new_citizen)
+                    citizen_user_id = str(result.inserted_id)
+                    print(f"DEBUG: Created new citizen account {comp_username}. Object: {new_citizen}")
+            except Exception as e:
+                print(f"CRITICAL: Failed to create/link citizen account: {e}")
+                # We can choose to continue or abort. If we abort, the user knows registration failed.
+                return jsonify({'error': f'Citizen account creation failed: {str(e)}'}), 500
+        
+        # Associate FIR with the citizen (so they see it)
+        if citizen_user_id:
+            fir_entry['user_id'] = citizen_user_id
+        
         fir_entry['complainant_name'] = data.get('complainant_name', 'Unknown')
         fir_entry['complainant_phone'] = data.get('complainant_phone', 'N/A')
         fir_entry['complainant_aadhar'] = data.get('complainant_aadhar', 'N/A')
         fir_entry['complainant_email'] = data.get('complainant_email', 'N/A')
         fir_entry['source'] = 'police_manual'
         fir_entry['received_by'] = str(user_id)
-        print(f"DEBUG: Manual FIR received by officer {user_id}")
+        print(f"DEBUG: Manual FIR received by officer {user_id} for citizen {citizen_user_id}")
     else:
         # Citizen Entry - Fetch details
         user = db.users.find_one({'_id': ObjectId(user_id)})
@@ -91,6 +138,8 @@ def submit_fir():
         fir_entry['complainant_aadhar'] = user.get('aadhar', 'N/A') if user else 'N/A'
         fir_entry['complainant_email'] = user.get('email', 'N/A') if user else 'N/A'
         fir_entry['source'] = 'citizen_portal'
+        # Note: Citizen entries don't have a station_id yet, which is expected.
+        # They get assigned one later or it's handled by some other logic.
 
     db.firs.insert_one(fir_entry)
     return jsonify({'message': 'FIR submitted successfully', 'fir_id': fir_id}), 201
@@ -258,11 +307,15 @@ def update_fir(fir_id):
         if sections:
             update_data['applicable_sections'] = sections
             
-        if status == 'resolved':
+        if status in ['resolved', 'rejected']:
             # Move to archives
             current_user_id = str(get_jwt_identity())
-            update_data['resolved_by'] = current_user_id
-            print(f"DEBUG: FIR {fir_id} resolved by officer {current_user_id}")
+            if status == 'resolved':
+                update_data['resolved_by'] = current_user_id
+            else:
+                update_data['rejected_by'] = current_user_id
+                
+            print(f"DEBUG: FIR {fir_id} {status} by officer {current_user_id}")
             archived_fir = old_fir.copy()
             archived_fir.update(update_data)
             
@@ -273,7 +326,7 @@ def update_fir(fir_id):
             db.firs.delete_one({'_id': fir_id})
             
             # Notify user
-            msg = f"Your FIR ({fir_id[:8]}) has been marked as RESOLVED."
+            msg = f"Your FIR ({fir_id[:8]}) has been marked as {status.upper()}."
             notification = {
                 '_id': str(uuid.uuid4()),
                 'user_id': old_fir['user_id'],
@@ -283,11 +336,12 @@ def update_fir(fir_id):
             }
             db.notifications.insert_one(notification)
             
-            return jsonify({'message': 'FIR completed and archived'}), 200
+            return jsonify({'message': f'FIR {status} and archived'}), 200
             
         else:
-            # Normal update
+            # Normal update (e.g., in_progress)
             result = db.firs.update_one({'_id': fir_id}, {'$set': update_data})
+            return jsonify({'message': 'FIR updated successfully'}), 200
             
             if result.matched_count:
                 # Create Notification if status changed
@@ -333,3 +387,16 @@ def mark_notification_read(notification_id):
         )
         return jsonify({'message': 'Marked as read'}), 200
     return jsonify({'error': 'Database error'}), 500
+@fir_bp.route('/community-alerts', methods=['GET'])
+@jwt_required()
+def get_community_alerts():
+    db = get_db()
+    if db is not None:
+        # Fetch latest 10 community alerts
+        alerts = list(db.community_alerts.find().sort('created_at', -1).limit(10))
+        for alert in alerts:
+            alert['_id'] = str(alert['_id'])
+            if 'created_at' in alert:
+                alert['created_at'] = alert['created_at'].isoformat()
+        return jsonify(alerts), 200
+    return jsonify([]), 200

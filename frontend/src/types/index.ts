@@ -44,3 +44,13 @@ export interface Notification {
   created_at: string;
   [key: string]: any;
 }
+
+export interface CommunityAlert {
+  _id: string;
+  title: string;
+  message: string;
+  severity: "emergency" | "important" | "info";
+  station_id: string;
+  created_at: string;
+  [key: string]: any;
+}

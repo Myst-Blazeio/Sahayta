@@ -101,8 +101,8 @@ def dashboard():
     # Total Pending FIRs for this station
     pending_firs_count = db.firs.count_documents({'station_id': user.get('station_id'), 'status': 'pending'})
     
-    # Recent FIRs
-    recent_firs = list(db.firs.find({'station_id': user.get('station_id')}).sort('submission_date', -1).limit(5))
+    # Recent FIRs (ONLY PENDING for dashboard as requested)
+    recent_firs = list(db.firs.find({'station_id': user.get('station_id'), 'status': 'pending'}).sort('submission_date', -1).limit(5))
     
     # Chart Data: Group by Month (Last 6 Months) from both active and archived FIRs
     pipeline = [
@@ -169,8 +169,11 @@ def inbox():
     if not user:
         return redirect(url_for('police.login'))
         
-    # Fetch all FIRs for station, sorted by newest
-    firs = list(db.firs.find({'station_id': user.get('station_id')}).sort('submission_date', -1))
+    # Fetch only active FIRs for station (Pending & In Progress)
+    firs = list(db.firs.find({
+        'station_id': user.get('station_id'),
+        'status': {'$in': ['pending', 'in_progress']}
+    }).sort('submission_date', -1))
     
     return render_template('police/inbox.html', user=user, firs=firs)
 
@@ -274,3 +277,69 @@ def get_officer_stats():
         'received_count': received_count + archived_received,
         'resolved_count': resolved_count
     })
+@police_bp.route('/alerts', methods=['GET'])
+@jwt_required()
+def alerts():
+    current_user_id = str(get_jwt_identity())
+    db = get_db()
+    user = db.police.find_one({'_id': ObjectId(current_user_id)})
+    if not user:
+        return redirect(url_for('police.login'))
+        
+    # Fetch all sent alerts
+    all_alerts = list(db.community_alerts.find().sort('created_at', -1))
+    
+    return render_template('police/alerts.html', user=user, alerts=all_alerts)
+
+@police_bp.route('/alerts', methods=['POST'])
+@jwt_required()
+def create_alert():
+    current_user_id = str(get_jwt_identity())
+    db = get_db()
+    user = db.police.find_one({'_id': ObjectId(current_user_id)})
+    
+    if not user:
+        return jsonify({'error': 'Unauthorized'}), 401
+        
+    data = request.get_json()
+    title = data.get('title')
+    message = data.get('message')
+    severity = data.get('severity', 'important') # emergency, important, info
+    
+    if not title or not message:
+        return jsonify({'error': 'Title and message are required'}), 400
+        
+    import uuid
+    alert_id = str(uuid.uuid4())
+    new_alert = {
+        '_id': alert_id,
+        'title': title,
+        'message': message,
+        'severity': severity,
+        'created_by': current_user_id,
+        'station_id': user.get('station_id'),
+        'created_at': datetime.datetime.utcnow()
+    }
+    
+    db.community_alerts.insert_one(new_alert)
+    
+    # Send a notification to EVERY registered citizen
+    citizens = db.users.find({'role': 'citizen'})
+    notifications = []
+    for citizen in citizens:
+        notifications.append({
+            '_id': str(uuid.uuid4()),
+            'user_id': str(citizen['_id']),
+            'message': f"EMERGENCY ALERT: {title} - {message}",
+            'is_read': False,
+            'type': 'community_alert',
+            'alert_id': alert_id,
+            'created_at': datetime.datetime.utcnow()
+        })
+    
+    if notifications:
+        db.notifications.insert_many(notifications)
+    
+    print(f"DEBUG: Community Alert '{title}' broadcasted to all citizens.")
+    
+    return jsonify({'message': 'Alert broadcasted successfully', 'alert': new_alert}), 201
