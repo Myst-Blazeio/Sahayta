@@ -21,6 +21,16 @@ document.addEventListener('DOMContentLoaded', function () {
     if (statusSelect) {
         statusSelect.addEventListener('change', filterTable);
     }
+
+    // Global listener for time inputs to auto-close native picker
+    // Only blurs when a complete value (hours and minutes) is present
+    const handleTimePicker = function (e) {
+        if (e.target && e.target.type === 'time' && e.target.value) {
+            e.target.blur();
+        }
+    };
+    document.addEventListener('input', handleTimePicker);
+    document.addEventListener('change', handleTimePicker);
 });
 
 function initChart(canvas) {
@@ -156,9 +166,28 @@ window.closeBNSModal = function () {
 };
 
 // Profile Modal
-window.toggleProfileModal = function () {
+window.toggleProfileModal = async function () {
     const modal = document.getElementById('profileModal');
-    if (modal) modal.classList.toggle('hidden');
+    if (!modal) return;
+
+    const isHidden = modal.classList.contains('hidden');
+    if (isHidden) {
+        // Fetch Stats
+        try {
+            const response = await fetch('/police/stats');
+            if (response.ok) {
+                const stats = await response.json();
+                document.getElementById('profileEmail').textContent = stats.email || 'N/A';
+                document.getElementById('profilePhone').textContent = stats.phone || 'N/A';
+                document.getElementById('profileReceivedCount').textContent = stats.received_count;
+                document.getElementById('profileResolvedCount').textContent = stats.resolved_count;
+            }
+        } catch (error) {
+            console.error('Error fetching profile stats:', error);
+        }
+    }
+
+    modal.classList.toggle('hidden');
 };
 
 // New Report Modal

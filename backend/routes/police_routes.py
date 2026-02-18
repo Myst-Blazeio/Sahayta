@@ -104,12 +104,25 @@ def dashboard():
     # Recent FIRs
     recent_firs = list(db.firs.find({'station_id': user.get('station_id')}).sort('submission_date', -1).limit(5))
     
-    # Chart Data: Group by Month (Last 6 Months)
+    # Chart Data: Group by Month (Last 6 Months) from both active and archived FIRs
     pipeline = [
         {
             '$match': {
                 'station_id': user.get('station_id'),
                 'submission_date': {'$gte': datetime.datetime.utcnow() - datetime.timedelta(days=180)}
+            }
+        },
+        {
+            '$unionWith': {
+                'coll': 'archives',
+                'pipeline': [
+                    {
+                        '$match': {
+                            'station_id': user.get('station_id'),
+                            'submission_date': {'$gte': datetime.datetime.utcnow() - datetime.timedelta(days=180)}
+                        }
+                    }
+                ]
             }
         },
         {
@@ -236,3 +249,28 @@ def profile():
         return redirect(url_for('police.profile'))
         
     return render_template('police/profile.html', user=user)
+
+@police_bp.route('/stats', methods=['GET'])
+@jwt_required()
+def get_officer_stats():
+    current_user_id = str(get_jwt_identity())
+    db = get_db()
+    user = db.police.find_one({'_id': ObjectId(current_user_id)})
+    
+    if not user:
+        print(f"DEBUG: Stats requested for unknown user ID: {current_user_id}")
+        return jsonify({'error': 'User not found'}), 404
+        
+    received_count = db.firs.count_documents({'received_by': current_user_id})
+    archived_received = db.archives.count_documents({'received_by': current_user_id})
+    resolved_count = db.archives.count_documents({'resolved_by': current_user_id})
+    
+    print(f"DEBUG Stats for {user.get('username')}: Received={received_count + archived_received}, Resolved={resolved_count}")
+    
+    return jsonify({
+        'full_name': user.get('full_name'),
+        'email': user.get('email', 'N/A'),
+        'phone': user.get('phone', 'N/A'),
+        'received_count': received_count + archived_received,
+        'resolved_count': resolved_count
+    })

@@ -1,2 +1,0 @@
-src/App.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
-src/pages/CitizenProfile.tsx(1,1): error TS6133: 'React' is declared but its value is never read.

@@ -8,22 +8,27 @@ BASE_URL = os.environ.get("API_BASE_URL", "http://localhost:5000/api")
 def register_user(username, role="citizen", police_id=None):
     print(f"\n[Registering {role}] {username}...")
     try:
+        unique_id = int(time.time())
         data = {
             "username": username,
             "password": "password123",
             "full_name": "Test User",
             "role": role,
             "email": f"{username}@example.com",
-            "phone": "9876543210"
+            "phone": f"9{str(unique_id)[-9:]}"
         }
         if role == "citizen":
             data["aadhar"] = f"1234{int(time.time())}" # Unique mock aadhar
         if role == "police":
             data["police_id"] = police_id or f"PID-{int(time.time())}"
+            data["station_id"] = "100" # Use a valid station ID from get_stations
             
         resp = requests.post(f"{BASE_URL}/auth/register", json=data)
+        if resp.status_code != 201:
+             print(f"Registration Failed for {username}: {resp.status_code} - {resp.text}")
+             return False
         print(f"Status: {resp.status_code} - {resp.json()}")
-        return resp.status_code == 201
+        return True
     except Exception as e:
         print(f"Error: {e}")
         return False
@@ -55,12 +60,18 @@ def submit_fir(token):
             "language": "en",
             "incident_date": "2024-03-20",
             "incident_time": "14:30",
-            "location": "Central Park"
+            "location": "Central Park",
+            "station_id": "100"
         }
         resp = requests.post(f"{BASE_URL}/fir/", headers=headers, json=data)
         print(f"Status: {resp.status_code} - {resp.json()}")
         if resp.status_code == 201:
-            return resp.json().get('fir_id')
+            fir_data = resp.json()
+            fir_id = fir_data.get('fir_id')
+            # Check for AI suggestions in the response if the backend returns them
+            # (Note: My backend implementation currently returns message and fir_id only, 
+            # but I can fetch the FIR to verify)
+            return fir_id
         return None
     except Exception as e:
         print(f"Error: {e}")
