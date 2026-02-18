@@ -5,9 +5,7 @@ import Footer from "../components/Footer";
 import axios from "axios";
 import { generateFIRPDF } from "../utils/pdfGenerator";
 import { motion, AnimatePresence } from "framer-motion";
-import AnonymousTip from "../components/AnonymousTip";
 import CommunityAlerts from "../components/CommunityAlerts";
-import FeedbackGrievance from "../components/FeedbackGrievance";
 import SafeRouteFinder from "../components/SafeRouteFinder";
 import {
   Bell,
@@ -149,7 +147,7 @@ const CitizenPortal = () => {
 
         {/* Tabs */}
         <div className="flex flex-wrap justify-center gap-2 bg-muted p-1 rounded-lg mb-8 w-full">
-          {["services", "new-fir", "history", "anonymous-tip", "community-alerts", "feedback", "safe-route", "profile"].map((tab) => (
+          {["services", "new-fir", "history", "community-alerts", "safe-route", "profile"].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -161,9 +159,7 @@ const CitizenPortal = () => {
               {tab === "services" && "Services"}
               {tab === "new-fir" && "File FIR"}
               {tab === "history" && "My FIRs"}
-              {tab === "anonymous-tip" && "Anonymous Tip"}
               {tab === "community-alerts" && "Alerts"}
-              {tab === "feedback" && "Feedback"}
               {tab === "safe-route" && "Safe Route"}
               {tab === "profile" && "Profile"}
             </button>
@@ -184,9 +180,8 @@ const CitizenPortal = () => {
             <NewFIRTab onSuccess={() => setActiveTab("history")} />
           )}
           {activeTab === "history" && <HistoryTab />}
-          {activeTab === "anonymous-tip" && <AnonymousTip />}
+
           {activeTab === "community-alerts" && <CommunityAlerts />}
-          {activeTab === "feedback" && <FeedbackGrievance />}
           {activeTab === "safe-route" && <SafeRouteFinder />}
           {activeTab === "profile" && <ProfileTab />}
         </motion.div>
@@ -206,21 +201,13 @@ const ServicesTab: React.FC<{ setActiveTab: (tab: string) => void }> = ({ setAct
       desc: "Report cognizable offenses immediately.",
       action: () => setActiveTab("new-fir"),
     },
-    {
-      title: "Anonymous Tip",
-      desc: "Report suspicious activity anonymously. No personal details required.",
-      action: () => setActiveTab("anonymous-tip"),
-    },
+
     {
       title: "Community Alerts",
       desc: "Stay informed about crimes, safety warnings, and emergencies in your area.",
       action: () => setActiveTab("community-alerts"),
     },
-    {
-      title: "Feedback & Grievance",
-      desc: "Submit feedback or complaints about police services and track resolution.",
-      action: () => setActiveTab("feedback"),
-    },
+
     {
       title: "Safe Route Finder",
       desc: "AI-suggested safer travel routes based on crime data and hotspot analysis.",
