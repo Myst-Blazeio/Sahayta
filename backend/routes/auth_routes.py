@@ -24,10 +24,16 @@ def login():
 
     # Check in users collection first, then police
     user = db.users.find_one({'username': username})
-    if not user:
+    if user:
+        print(f"DEBUG: Found user {username} in 'users' collection. Hash: {user.get('password_hash')}")
+    else:
         user = db.police.find_one({'username': username})
+        if user:
+            print(f"DEBUG: Found user {username} in 'police' collection. Hash: {user.get('password_hash')}")
+        else:
+            print(f"DEBUG: User {username} not found in any collection.")
     
-    if user and check_password_hash(user['password_hash'], password):
+    if user and check_password_hash(user.get('password_hash', ''), password):
         # Determine role from user object or default
         role = user.get('role', 'citizen')
         
@@ -36,12 +42,14 @@ def login():
             claims['station_id'] = user.get('station_id')
         
         access_token = create_access_token(identity=str(user['_id']), additional_claims=claims, expires_delta=datetime.timedelta(days=1))
+        print(f"DEBUG: Login successful for {username}")
         return jsonify({
             'token': access_token, 
             'role': role,
             'username': user.get('username')
         }), 200
     
+    print(f"DEBUG: Login failed for {username}. Mismatch or no user.")
     return jsonify({'error': 'Invalid credentials'}), 401
 
 @auth_bp.route('/stations', methods=['GET'])
