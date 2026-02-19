@@ -21,7 +21,7 @@ export interface FIR {
   _id: string;
   user_id: string;
   station_id: string;
-  status: "pending" | "accepted" | "rejected" | "resolved";
+  status: "pending" | "accepted" | "rejected" | "resolved" | "in_progress";
   original_text: string;
   incident_date: string;
   incident_time: string;
@@ -41,6 +41,16 @@ export interface Notification {
   user_id: string;
   message: string;
   is_read: boolean;
+  created_at: string;
+  [key: string]: any;
+}
+
+export interface CommunityAlert {
+  _id: string;
+  title: string;
+  message: string;
+  severity: "emergency" | "important" | "info";
+  station_id: string;
   created_at: string;
   [key: string]: any;
 }
