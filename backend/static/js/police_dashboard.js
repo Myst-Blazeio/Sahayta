@@ -209,9 +209,12 @@ window.submitManualFIR = async function (event) {
         incident_date: form.incident_date.value,
         incident_time: form.incident_time.value,
         location: form.location.value,
-        station_id: form.station_id.value,
+        complainant_username: form.complainant_username.value,
+        complainant_password: form.complainant_password.value,
         language: 'en' // Defaulting to English for manual entry
     };
+
+    console.log('Submitting Manual FIR Data:', data);
 
     try {
         const response = await fetch('/api/fir/', {
@@ -226,11 +229,12 @@ window.submitManualFIR = async function (event) {
             location.reload();
         } else {
             const err = await response.json();
+            console.error('Submission Failed:', err);
             alert('Submission Failed: ' + (err.error || 'Unknown error'));
         }
     } catch (error) {
-        console.error(error);
-        alert('Error submitting FIR');
+        console.error('Error submitting FIR:', error);
+        alert('Error submitting FIR: ' + error.message);
     }
 };
 
@@ -348,6 +352,7 @@ window.filterTable = function () {
     const filterStatus = statusSelect ? statusSelect.value.toLowerCase() : '';
 
     const table = document.querySelector('table tbody');
+    if (!table) return;
     const rows = table.getElementsByTagName('tr');
 
     for (let i = 0; i < rows.length; i++) {
@@ -356,18 +361,24 @@ window.filterTable = function () {
 
         const firId = rows[i].cells[0].textContent.toLowerCase();
         const complainant = rows[i].cells[1].textContent.toLowerCase();
-        const statusSpan = rows[i].cells[3].getElementsByTagName('span')[0]; // Adjust index if needed (Dashboard vs Inbox)
-        // Dashboard: ID(0), Complainant(1), Date(2), Status(3), Action(4)
-        // Inbox: ID(0), Complainant(1), Date(2), Location(3), Status(4), Action(5)
 
-        // Dynamic Status column finding
+        // Find status - it can be at index 3 or 4 depending on page
+        // Dashboard/Archives: ID(0), Complainant(1), Date(2), Status(3)
+        // Inbox: ID(0), Complainant(1), Date(2), Location(3), Status(4)
+
+        let statusSpan = rows[i].cells[3].querySelector('span');
         let statusText = '';
+
         if (statusSpan) {
             statusText = statusSpan.textContent.trim().toLowerCase();
-        } else {
-            // Fallback for inbox where it might be index 4
-            const statusSpanInbox = rows[i].cells[4]?.getElementsByTagName('span')[0];
-            if (statusSpanInbox) statusText = statusSpanInbox.textContent.trim().toLowerCase();
+        }
+
+        // If index 3 didn't yield a status span, try index 4 (Inbox)
+        if (!statusText || !['pending', 'in progress', 'resolved', 'rejected'].includes(statusText)) {
+            let statusSpanInbox = rows[i].cells[4]?.querySelector('span');
+            if (statusSpanInbox) {
+                statusText = statusSpanInbox.textContent.trim().toLowerCase();
+            }
         }
 
         const matchesText = firId.includes(filterText) || complainant.includes(filterText);
@@ -380,3 +391,11 @@ window.filterTable = function () {
         }
     }
 };
+
+// Ensure search input triggers filtering if defined directly in HTML without oninput
+document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById('searchFirs');
+    if (searchInput && !searchInput.oninput) {
+        searchInput.addEventListener('input', filterTable);
+    }
+});

@@ -8,7 +8,7 @@ export const generateFIRPDF = (fir: FIR) => {
     // Header
     doc.setFontSize(22);
     doc.setTextColor(41, 128, 185);
-    doc.text("FIR Report", 105, 20, { align: "center" });
+    doc.text("FIR Progress Report", 105, 20, { align: "center" });
 
     doc.setFontSize(12);
     doc.setTextColor(100);
@@ -74,7 +74,7 @@ export const generateFIRPDF = (fir: FIR) => {
     if (fir.police_notes) {
         autoTable(doc, {
             startY: (doc as any).lastAutoTable.finalY + 10,
-            head: [["Police Notes"]],
+            head: [["Action Taken (Police Notes)"]],
             body: [[fir.police_notes]],
             theme: "grid",
             headStyles: { fillColor: [41, 128, 185] },
