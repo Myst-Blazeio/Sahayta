@@ -172,23 +172,45 @@ const CitizenPortal = () => {
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className={`p-4 rounded-lg border-2 flex gap-4 items-start shadow-md ${alert.severity === "emergency"
-                      ? "bg-red-50 border-red-200 text-red-900"
-                      : alert.severity === "important"
-                        ? "bg-amber-50 border-amber-200 text-amber-900"
-                        : "bg-blue-50 border-blue-200 text-blue-900"
+                    ? "bg-red-50 border-red-200 text-red-900"
+                    : alert.severity === "important"
+                      ? "bg-amber-50 border-amber-200 text-amber-900"
+                      : "bg-blue-50 border-blue-200 text-blue-900"
                     }`}
                 >
                   <div className={`mt-1 p-2 rounded-full ${alert.severity === "emergency" ? "bg-red-100 text-red-600" :
-                      alert.severity === "important" ? "bg-amber-100 text-amber-600" : "bg-blue-100 text-blue-600"
+                    alert.severity === "important" ? "bg-amber-100 text-amber-600" : "bg-blue-100 text-blue-600"
                     }`}>
                     <Bell size={20} className={alert.severity === "emergency" ? "animate-bounce" : ""} />
                   </div>
                   <div className="flex-1">
                     <div className="flex justify-between items-center mb-1">
                       <h3 className="font-bold text-lg">{alert.title}</h3>
-                      <span className="text-xs opacity-70">
-                        {new Date(alert.created_at).toLocaleString()}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs opacity-70">
+                          {new Date(alert.created_at).toLocaleString()}
+                        </span>
+                        <button
+                          onClick={async () => {
+                            console.log('Attempting to dismiss alert:', alert._id);
+                            try {
+                              const res = await axios.put(`/api/fir/community-alerts/${alert._id}/dismiss`, {}, {
+                                headers: { Authorization: `Bearer ${token}` }
+                              });
+                              console.log('Dismiss response:', res.status, res.data);
+                              fetchAlerts();
+                            } catch (e: any) {
+                              console.error("Failed to dismiss alert:", e.response?.data || e.message);
+                              window.alert("Failed to mark as read. Please try again.");
+                            }
+                          }}
+                          className="flex items-center gap-1 px-2 py-1 bg-black/5 hover:bg-black/10 rounded transition text-xs font-medium"
+                          title="Mark as read"
+                        >
+                          <X size={14} />
+                          <span>Mark as Read</span>
+                        </button>
+                      </div>
                     </div>
                     <p className="text-sm leading-relaxed">{alert.message}</p>
                     <div className="mt-2 text-xs font-semibold uppercase tracking-wider opacity-60">

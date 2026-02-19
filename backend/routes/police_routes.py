@@ -288,6 +288,8 @@ def alerts():
         
     # Fetch all sent alerts
     all_alerts = list(db.community_alerts.find().sort('created_at', -1))
+    for alert in all_alerts:
+        alert['_id'] = str(alert['_id'])
     
     return render_template('police/alerts.html', user=user, alerts=all_alerts)
 
@@ -343,3 +345,33 @@ def create_alert():
     print(f"DEBUG: Community Alert '{title}' broadcasted to all citizens.")
     
     return jsonify({'message': 'Alert broadcasted successfully', 'alert': new_alert}), 201
+
+@police_bp.route('/alerts/<alert_id>', methods=['DELETE'])
+@jwt_required()
+def delete_alert(alert_id):
+    current_user_id = str(get_jwt_identity())
+    db = get_db()
+    
+    # Check if user exists and is authorized (police)
+    user = db.police.find_one({'_id': ObjectId(current_user_id)})
+    if not user:
+        return jsonify({'error': 'Unauthorized'}), 401
+        
+    # Delete the alert (handle both string and ObjectId)
+    query = {'_id': alert_id}
+    try:
+        if len(alert_id) == 24:
+            query = {'$or': [{'_id': alert_id}, {'_id': ObjectId(alert_id)}]}
+    except:
+        pass
+
+    result = db.community_alerts.delete_one(query)
+    
+    if result.deleted_count:
+        # Also delete related notifications for this alert
+        # Notifications always use the string alert_id from our create_alert logic
+        db.notifications.delete_many({'alert_id': alert_id})
+        return jsonify({'message': 'Alert and related notifications deleted successfully'}), 200
+    else:
+        # Check if it was already an ObjectId in DB
+        return jsonify({'error': 'Alert not found'}), 404

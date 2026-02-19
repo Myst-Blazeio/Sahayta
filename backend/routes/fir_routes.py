@@ -142,6 +142,20 @@ def submit_fir():
         # They get assigned one later or it's handled by some other logic.
 
     db.firs.insert_one(fir_entry)
+    
+    # Notify user if it's a manual entry (citizen gets account/FIR info via notification if they exist)
+    if role == 'police' and citizen_user_id:
+        msg = f"A new FIR (#{fir_id[:8]}) has been filed on your behalf at Station {police_station_id}."
+        notification = {
+            '_id': str(uuid.uuid4()),
+            'user_id': citizen_user_id,
+            'message': msg,
+            'is_read': False,
+            'created_at': datetime.utcnow()
+        }
+        db.notifications.insert_one(notification)
+        print(f"DEBUG: Notification sent to citizen {citizen_user_id} for manual FIR.")
+
     return jsonify({'message': 'FIR submitted successfully', 'fir_id': fir_id}), 201
 
 @fir_bp.route('/', methods=['GET'])
@@ -341,7 +355,6 @@ def update_fir(fir_id):
         else:
             # Normal update (e.g., in_progress)
             result = db.firs.update_one({'_id': fir_id}, {'$set': update_data})
-            return jsonify({'message': 'FIR updated successfully'}), 200
             
             if result.matched_count:
                 # Create Notification if status changed
@@ -390,13 +403,55 @@ def mark_notification_read(notification_id):
 @fir_bp.route('/community-alerts', methods=['GET'])
 @jwt_required()
 def get_community_alerts():
+    user_id = str(get_jwt_identity())
     db = get_db()
     if db is not None:
-        # Fetch latest 10 community alerts
-        alerts = list(db.community_alerts.find().sort('created_at', -1).limit(10))
+        # Fetch user (check both collections for robustness)
+        user = db.users.find_one({'_id': ObjectId(user_id)})
+        if not user:
+            user = db.police.find_one({'_id': ObjectId(user_id)})
+            
+        dismissed = []
+        if user and 'dismissed_alerts' in user:
+            dismissed = user['dismissed_alerts']
+            
+        # To handle both string and ObjectId in the $nin filter
+        query_ids = []
+        for d in dismissed:
+            query_ids.append(d)
+            try:
+                if len(d) == 24:
+                    query_ids.append(ObjectId(d))
+            except:
+                pass
+
+        # Fetch latest 10 community alerts not dismissed by user
+        alerts = list(db.community_alerts.find({'_id': {'$nin': query_ids}}).sort('created_at', -1).limit(10))
         for alert in alerts:
             alert['_id'] = str(alert['_id'])
             if 'created_at' in alert:
                 alert['created_at'] = alert['created_at'].isoformat()
         return jsonify(alerts), 200
     return jsonify([]), 200
+
+@fir_bp.route('/community-alerts/<alert_id>/dismiss', methods=['PUT'])
+@jwt_required()
+def dismiss_community_alert(alert_id):
+    user_id = str(get_jwt_identity())
+    db = get_db()
+    print(f"DEBUG: Dismissing alert {alert_id} for user {user_id}")
+    if db is not None:
+        # Add to either users or police collection based on where user exists
+        result = db.users.update_one(
+            {'_id': ObjectId(user_id)},
+            {'$addToSet': {'dismissed_alerts': alert_id}}
+        )
+        print(f"DEBUG: db.users update matched {result.matched_count} docs")
+        if result.matched_count == 0:
+            result_police = db.police.update_one(
+                {'_id': ObjectId(user_id)},
+                {'$addToSet': {'dismissed_alerts': alert_id}}
+            )
+            print(f"DEBUG: db.police update matched {result_police.matched_count} docs")
+        return jsonify({'message': 'Alert dismissed'}), 200
+    return jsonify({'error': 'Database error'}), 500

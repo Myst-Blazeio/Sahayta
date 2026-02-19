@@ -72,15 +72,14 @@ export const generateFIRPDF = (fir: FIR) => {
 
     // Police Notes (If available)
     if (fir.police_notes) {
-        const notesY = finalY + 12 + descHeight + 10;
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(12);
-        doc.text("Current Action Taken:", 20, notesY);
-
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(10);
-        const splitNotes = doc.splitTextToSize(fir.police_notes, 170);
-        doc.text(splitNotes, 20, notesY + 7);
+        autoTable(doc, {
+            startY: (doc as any).lastAutoTable.finalY + 10,
+            head: [["Action Taken (Police Notes)"]],
+            body: [[fir.police_notes]],
+            theme: "grid",
+            headStyles: { fillColor: [41, 128, 185] },
+            styles: { cellWidth: 'auto', overflow: 'linebreak' },
+        });
     }
 
     // Footer

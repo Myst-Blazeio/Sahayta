@@ -21,7 +21,7 @@ export interface FIR {
   _id: string;
   user_id: string;
   station_id: string;
-  status: "pending" | "accepted" | "rejected" | "resolved";
+  status: "pending" | "accepted" | "rejected" | "resolved" | "in_progress";
   original_text: string;
   incident_date: string;
   incident_time: string;

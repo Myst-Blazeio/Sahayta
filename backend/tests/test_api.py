@@ -92,14 +92,25 @@ def police_action(token, fir_id):
             else:
                 print("FIR not found in pending list (check db query?)")
         
-        # 2. Update Status
+        # 2. Update Status to In Progress
+        print("Updating to in_progress...")
+        update_data = {
+            "status": "in_progress",
+            "police_notes": "Investigation started.",
+            "applicable_sections": ["Section 379 IPC"]
+        }
+        res = requests.put(f'{BASE_URL}/fir/{fir_id}/update', json=update_data, headers=headers)
+        print(f"Update (in_progress) Status: {res.status_code} - {res.json()}")
+
+        # 3. Update Status to Resolved
+        print("Updating to resolved...")
         update_data = {
             "status": "resolved",
             "police_notes": "Cycle found and returned.",
             "applicable_sections": ["Section 379 IPC"]
         }
         res = requests.put(f'{BASE_URL}/fir/{fir_id}/update', json=update_data, headers=headers)
-        print(f"Update Status: {res.status_code} - {res.json()}")
+        print(f"Update (resolved) Status: {res.status_code} - {res.json()}")
         
     except Exception as e:
         print(f"Error: {e}")
