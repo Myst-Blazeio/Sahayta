@@ -93,93 +93,38 @@ const severityConfig: Record<
     },
 };
 
-// Mock community alerts data
-const mockAlerts: CommunityAlert[] = [
-    {
-        id: "ALT-001",
-        type: "emergency",
-        severity: "critical",
-        title: "Flash Flood Warning — Low-lying Areas",
-        summary: "Heavy rainfall expected in the next 6 hours. Residents in low-lying areas should move to higher ground immediately.",
-        details: "The Meteorological Department has issued a red alert for the district. Water levels in the Hooghly and Damodar rivers are rising. All residents in Ward 5, 7, and 12 are advised to evacuate to the nearest relief shelters. Emergency helpline: 1070.",
-        location: "Ward 5, 7, 12 — Riverside Areas",
-        issued_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        expires_at: new Date(Date.now() + 10 * 60 * 60 * 1000).toISOString(),
-        is_active: true,
-    },
-    {
-        id: "ALT-002",
-        type: "crime",
-        severity: "high",
-        title: "Chain Snatching Incidents — Market Area",
-        summary: "Multiple chain snatching incidents reported near the central market between 6 PM and 9 PM.",
-        details: "Police have received 4 complaints of chain snatching in the Central Market and adjoining lanes over the past 3 days. Suspects are operating on two-wheelers. Citizens are advised to avoid wearing visible jewellery in the area and report any suspicious activity immediately. Extra patrolling has been deployed.",
-        location: "Central Market, Sector 4-6",
-        issued_at: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
-        expires_at: null,
-        is_active: true,
-    },
-    {
-        id: "ALT-003",
-        type: "safety",
-        severity: "medium",
-        title: "Cyber Fraud Alert — Fake UPI Requests",
-        summary: "Beware of fake UPI payment requests from unknown numbers claiming to be from banks or police.",
-        details: "Several citizens have reported receiving phishing calls and fraudulent UPI requests. The scammers pose as bank officials or police officers and ask for OTPs. Remember: No bank or police officer will ever ask for your OTP, PIN, or password over the phone. If you receive such a call, disconnect and report to Cyber Crime helpline 1930.",
-        location: "City-wide",
-        issued_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-        expires_at: null,
-        is_active: true,
-    },
-    {
-        id: "ALT-004",
-        type: "advisory",
-        severity: "low",
-        title: "Road Closure — Republic Day Parade Route",
-        summary: "Major roads will be closed on 26th January from 6 AM to 2 PM for the Republic Day parade.",
-        details: "The following roads will be closed for vehicular traffic: MG Road, Station Road, and Parade Ground approach lanes. Citizens are requested to use alternate routes via Ring Road and NH-16. Public transport will be diverted. Plan your travel accordingly.",
-        location: "MG Road, Station Road, Parade Ground",
-        issued_at: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
-        expires_at: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(),
-        is_active: true,
-    },
-    {
-        id: "ALT-005",
-        type: "update",
-        severity: "low",
-        title: "New Women's Safety Helpline Launched",
-        summary: "Dial 181 for the Women's Safety Helpline — 24x7 support for women in distress.",
-        details: "The district administration has launched a dedicated Women's Safety Helpline number 181. The helpline provides immediate assistance, counselling, and connects callers with the nearest police station. This service is available 24x7 in Hindi, English, and Bengali.",
-        location: "All Areas",
-        issued_at: new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString(),
-        expires_at: null,
-        is_active: true,
-    },
-    {
-        id: "ALT-006",
-        type: "crime",
-        severity: "medium",
-        title: "Vehicle Theft Warning — Parking Lots",
-        summary: "Increase in two-wheeler thefts reported from unguarded parking lots in the commercial district.",
-        details: "Police have noted a 30% increase in two-wheeler thefts from open/unguarded parking areas near the commercial district. Citizens are advised to use only authorized parking lots, activate steering locks, and avoid leaving helmets on vehicles. CCTV footage is being analyzed and additional patrols have been assigned.",
-        location: "Commercial District, Zone B",
-        issued_at: new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString(),
-        expires_at: null,
-        is_active: true,
-    },
-];
+// Mock alerts removed
 
-const CommunityAlerts: React.FC = () => {
+interface CommunityAlertsProps {
+    alerts?: any[]; // Using any[] temporarily if the CitizenPortal uses a different CommunityAlert type
+}
+
+const CommunityAlerts: React.FC<CommunityAlertsProps> = ({ alerts = [] }) => {
     const [selectedAlert, setSelectedAlert] = useState<CommunityAlert | null>(null);
     const [filterType, setFilterType] = useState<AlertType | "all">("all");
     const [showFilters, setShowFilters] = useState(false);
 
+    // Map backend alerts to frontend CommunityAlert type if needed, or use them directly if types match.
+    // We assume backend returns properties roughly matching the type, or we fallback.
+    const normalizedAlerts: CommunityAlert[] = alerts.map((a: any) => ({
+        id: a._id || a.id || String(Math.random()),
+        type: (a.type || "advisory") as AlertType,
+        severity: (a.severity || "low") as AlertSeverity,
+        title: a.title || "Alert",
+        summary: a.message || a.summary || "",
+        details: a.details || a.message || "",
+        location: a.location || a.station_id || "Unknown Area",
+        issued_at: a.created_at || a.issued_at || new Date().toISOString(),
+        expires_at: a.expires_at || null,
+        is_active: a.is_active !== false,
+    }));
+
     const filteredAlerts =
         filterType === "all"
-            ? mockAlerts
-            : mockAlerts.filter((a) => a.type === filterType);
+            ? normalizedAlerts
+            : normalizedAlerts.filter((a) => a.type === filterType);
 
-    const criticalCount = mockAlerts.filter((a) => a.severity === "critical").length;
+    const criticalCount = normalizedAlerts.filter((a) => a.severity === "critical").length;
 
     const timeAgo = (dateStr: string) => {
         const diff = Date.now() - new Date(dateStr).getTime();
@@ -246,11 +191,11 @@ const CommunityAlerts: React.FC = () => {
                                     : "bg-card text-foreground border-border hover:bg-accent"
                                     }`}
                             >
-                                All ({mockAlerts.length})
+                                All ({normalizedAlerts.length})
                             </button>
                             {(Object.keys(alertTypeConfig) as AlertType[]).map((type) => {
                                 const config = alertTypeConfig[type];
-                                const count = mockAlerts.filter((a) => a.type === type).length;
+                                const count = normalizedAlerts.filter((a) => a.type === type).length;
                                 return (
                                     <button
                                         key={type}

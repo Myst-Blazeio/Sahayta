@@ -205,7 +205,7 @@ window.submitManualFIR = async function (event) {
         complainant_phone: form.complainant_phone.value,
         complainant_aadhar: form.complainant_aadhar.value,
         complainant_email: form.complainant_email.value,
-        text: form.details.value,
+        original_text: form.details.value,
         incident_date: form.incident_date.value,
         incident_time: form.incident_time.value,
         location: form.location.value,

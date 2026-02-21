@@ -24,7 +24,7 @@ Automation{% endblock %} {% block content %}
 
     <form
       method="POST"
-      action="{{ url_for('police.signup') }}"
+      action="{{ url_for('police_views.signup') }}"
       class="space-y-6"
     >
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -146,13 +146,13 @@ Automation{% endblock %} {% block content %}
       <p class="text-sm text-gray-600">
         Already registered?
         <a
-          href="{{ url_for('police.login') }}"
+          href="{{ url_for('police_views.login') }}"
           class="text-blue-600 hover:text-blue-500"
           >Login here</a
         >
       </p>
       <a
-        href="{{ url_for('police.index') }}"
+        href="{{ url_for('police_views.index') }}"
         class="text-sm text-gray-600 hover:text-gray-900 flex items-center justify-center gap-1"
       >
         <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Home
@@ -161,3 +161,4 @@ Automation{% endblock %} {% block content %}
   </div>
 </div>
 {% endblock %}
+

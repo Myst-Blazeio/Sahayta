@@ -45,8 +45,17 @@ def login():
         print(f"DEBUG: Login successful for {username}")
         return jsonify({
             'token': access_token, 
-            'role': role,
-            'username': user.get('username')
+            'user': {
+                '_id': str(user['_id']),
+                'username': user.get('username'),
+                'role': role,
+                'full_name': user.get('full_name'),
+                'email': user.get('email'),
+                'phone': user.get('phone'),
+                'station_id': user.get('station_id'),
+                'police_id': user.get('police_id'),
+                'aadhar': user.get('aadhar')
+            }
         }), 200
     
     print(f"DEBUG: Login failed for {username}. Mismatch or no user.")
@@ -114,6 +123,8 @@ def register():
     elif role == 'police':
         police_id = data.get('police_id')
         station_id = data.get('station_id') 
+        phone = data.get('phone')
+        email = data.get('email')
         
         if not police_id:
             return jsonify({'error': 'Police ID is required for police personnel'}), 400
@@ -126,6 +137,8 @@ def register():
             
         new_user['police_id'] = str(police_id)
         new_user['station_id'] = str(station_id)
+        if phone: new_user['phone'] = phone
+        if email: new_user['email'] = email
         collection = db.police
     
     new_user['password_hash'] = generate_password_hash(password)

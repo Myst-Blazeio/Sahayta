@@ -11,27 +11,27 @@
             <p class="text-sm text-gray-500 mt-1">Station ID: {{ user.station_id }}</p>
         </div>
         <nav class="flex-1 p-4 space-y-2">
-            <a href="{{ url_for('police.dashboard') }}"
+            <a href="{{ url_for('police_views.dashboard') }}"
                 class="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg">
                 <i data-lucide="layout-dashboard"></i>
                 <span class="font-medium">Dashboard</span>
             </a>
-            <a href="{{ url_for('police.inbox') }}"
+            <a href="{{ url_for('police_views.inbox') }}"
                 class="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg">
                 <i data-lucide="file-text"></i>
                 <span class="font-medium">FIR Inbox</span>
             </a>
-            <a href="{{ url_for('police.analytics') }}"
+            <a href="{{ url_for('police_views.analytics') }}"
                 class="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg">
                 <i data-lucide="bar-chart-2"></i>
                 <span class="font-medium">Analytics</span>
             </a>
-            <a href="{{ url_for('police.archives') }}"
+            <a href="{{ url_for('police_views.archives') }}"
                 class="flex items-center gap-3 px-4 py-3 bg-blue-50 text-blue-700 rounded-lg">
                 <i data-lucide="archive"></i>
                 <span class="font-medium">Archives</span>
             </a>
-            <a href="{{ url_for('police.alerts') }}"
+            <a href="{{ url_for('police_views.alerts') }}"
                 class="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg">
                 <i data-lucide="megaphone"></i>
                 <span class="font-medium">Community Alerts</span>
@@ -48,7 +48,7 @@
                     <p class="text-xs text-gray-500">Officer</p>
                 </div>
             </div>
-            <a href="{{ url_for('police.logout') }}"
+            <a href="{{ url_for('police_views.logout') }}"
                 class="flex items-center gap-2 text-red-600 hover:text-red-700 text-sm font-medium">
                 <i data-lucide="log-out" size="16"></i> Sign Out
             </a>

@@ -64,7 +64,7 @@ export const generateFIRPDF = (fir: FIR) => {
     autoTable(doc, {
         startY: (doc as any).lastAutoTable.finalY + 10,
         head: [["Incident Description"]],
-        body: [[fir.original_text]],
+        body: [[fir.translated_text || fir.original_text]],
         theme: "grid",
         headStyles: { fillColor: [41, 128, 185] },
         styles: { cellWidth: 'auto', overflow: 'linebreak' }, // Ensure wrapping

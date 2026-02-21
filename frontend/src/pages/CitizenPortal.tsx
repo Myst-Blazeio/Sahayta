@@ -2,11 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import axios from "axios";
 import { generateFIRPDF } from "../utils/pdfGenerator";
 import { motion, AnimatePresence } from "framer-motion";
 import CommunityAlerts from "../components/CommunityAlerts";
-import SafeRouteFinder from "../components/SafeRouteFinder";
 import {
   Bell,
   X,
@@ -20,6 +18,8 @@ import {
   Download,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { firService } from "../api/firService";
+import { authService } from "../api/authService";
 import { Notification, Station, FIR, CommunityAlert } from "../types";
 
 const CitizenPortal = () => {
@@ -44,10 +44,8 @@ const CitizenPortal = () => {
 
   const fetchAlerts = async () => {
     try {
-      const res = await axios.get("/api/fir/community-alerts", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setAlerts(res.data);
+      const data = await firService.getCommunityAlerts();
+      setAlerts(data);
     } catch (e) {
       console.error("Failed to fetch community alerts");
     }
@@ -55,10 +53,8 @@ const CitizenPortal = () => {
 
   const fetchNotifications = async () => {
     try {
-      const res = await axios.get("/api/fir/notifications", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setNotifications(res.data);
+      const data = await firService.getNotifications();
+      setNotifications(data);
     } catch (e) {
       console.error("Failed to fetch notifications");
     }
@@ -66,11 +62,7 @@ const CitizenPortal = () => {
 
   const markRead = async (id: string) => {
     try {
-      await axios.put(
-        `/api/fir/notifications/${id}/read`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      await firService.markNotificationRead(id);
       setNotifications(
         notifications.map((n) => (n._id === id ? { ...n, is_read: true } : n)),
       );
@@ -196,10 +188,8 @@ const CitizenPortal = () => {
                           onClick={async () => {
                             console.log('Attempting to dismiss alert:', alert._id);
                             try {
-                              const res = await axios.put(`/api/fir/community-alerts/${alert._id}/dismiss`, {}, {
-                                headers: { Authorization: `Bearer ${token}` }
-                              });
-                              console.log('Dismiss response:', res.status, res.data);
+                              await firService.dismissCommunityAlert(alert._id);
+                              console.log('Dismiss response: success');
                               fetchAlerts();
                             } catch (e: any) {
                               console.error("Failed to dismiss alert:", e.response?.data || e.message);
@@ -225,9 +215,8 @@ const CitizenPortal = () => {
           </div>
         )}
 
-        {/* Tabs */}
         <div className="flex flex-wrap justify-center gap-2 bg-muted p-1 rounded-lg mb-8 w-full">
-          {["services", "new-fir", "history", "community-alerts", "safe-route", "profile"].map((tab) => (
+          {["services", "new-fir", "history", "community-alerts", "profile"].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -240,7 +229,6 @@ const CitizenPortal = () => {
               {tab === "new-fir" && "File FIR"}
               {tab === "history" && "My FIRs"}
               {tab === "community-alerts" && "Alerts"}
-              {tab === "safe-route" && "Safe Route"}
               {tab === "profile" && "Profile"}
             </button>
           ))}
@@ -261,8 +249,7 @@ const CitizenPortal = () => {
           )}
           {activeTab === "history" && <HistoryTab />}
 
-          {activeTab === "community-alerts" && <CommunityAlerts />}
-          {activeTab === "safe-route" && <SafeRouteFinder />}
+          {activeTab === "community-alerts" && <CommunityAlerts alerts={alerts} />}
           {activeTab === "profile" && <ProfileTab />}
         </motion.div>
       </main>
@@ -286,12 +273,6 @@ const ServicesTab: React.FC<{ setActiveTab: (tab: string) => void }> = ({ setAct
       title: "Community Alerts",
       desc: "Stay informed about crimes, safety warnings, and emergencies in your area.",
       action: () => setActiveTab("community-alerts"),
-    },
-
-    {
-      title: "Safe Route Finder",
-      desc: "AI-suggested safer travel routes based on crime data and hotspot analysis.",
-      action: () => setActiveTab("safe-route"),
     },
   ];
 
@@ -323,7 +304,7 @@ const ServicesTab: React.FC<{ setActiveTab: (tab: string) => void }> = ({ setAct
 
 const NewFIRTab: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) => {
   const [formData, setFormData] = useState({
-    text: "",
+    original_text: "",
     language: "en",
     incident_date: "",
     incident_time: "",
@@ -334,14 +315,14 @@ const NewFIRTab: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) => {
   const [stations, setStations] = useState<Station[]>([]);
   const [msg, setMsg] = useState("");
   const [dateWarning, setDateWarning] = useState("");
-  const { token } = useAuth();
+
 
   useEffect(() => {
     // Fetch stations on mount
     const fetchStations = async () => {
       try {
-        const res = await axios.get("/api/auth/stations");
-        setStations(res.data);
+        const data = await authService.getStations();
+        setStations(data);
       } catch (err) {
         console.error("Failed to fetch stations", err);
       }
@@ -383,9 +364,7 @@ const NewFIRTab: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) => {
     setMsg("");
 
     try {
-      await axios.post("/api/fir/", formData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await firService.createFIR(formData);
       setMsg("FIR Submitted Successfully!");
       setTimeout(() => onSuccess(), 1500);
     } catch (error) {
@@ -513,8 +492,8 @@ const NewFIRTab: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) => {
             className="w-full h-32 p-3 rounded border bg-input"
             placeholder="Describe what happened..."
             required
-            value={formData.text}
-            onChange={(e) => setFormData({ ...formData, text: e.target.value })}
+            value={formData.original_text}
+            onChange={(e) => setFormData({ ...formData, original_text: e.target.value })}
           />
         </div>
 
@@ -618,14 +597,12 @@ const HistoryTab = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [firRes, stationRes] = await Promise.all([
-          axios.get("/api/fir/", {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get("/api/auth/stations"),
+        const [firData, stationData] = await Promise.all([
+          firService.getUserFIRs(),
+          authService.getStations(),
         ]);
-        setFirs(firRes.data);
-        setStations(stationRes.data);
+        setFirs(firData);
+        setStations(stationData);
       } catch (error) {
         console.error("Error fetching history:", error);
       } finally {

@@ -18,11 +18,11 @@
         </p>
         
         <div class="mt-10 flex justify-center gap-6">
-            <a href="{{ url_for('police.login') }}" class="transform hover:scale-105 transition-transform duration-200 px-8 py-4 bg-blue-600 text-white font-bold rounded-lg shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center gap-2">
+            <a href="{{ url_for('police_views.login') }}" class="transform hover:scale-105 transition-transform duration-200 px-8 py-4 bg-blue-600 text-white font-bold rounded-lg shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center gap-2">
                 <i data-lucide="log-in" class="w-5 h-5"></i>
                 Officer Login
             </a>
-            <a href="{{ url_for('police.signup') }}" class="transform hover:scale-105 transition-transform duration-200 px-8 py-4 bg-white text-blue-600 font-bold rounded-lg shadow-lg border border-blue-200 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center gap-2">
+            <a href="{{ url_for('police_views.signup') }}" class="transform hover:scale-105 transition-transform duration-200 px-8 py-4 bg-white text-blue-600 font-bold rounded-lg shadow-lg border border-blue-200 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center gap-2">
                 <i data-lucide="user-plus" class="w-5 h-5"></i>
                 Register New Officer
             </a>
@@ -56,3 +56,4 @@
     </div>
 </div>
 {% endblock %}
+

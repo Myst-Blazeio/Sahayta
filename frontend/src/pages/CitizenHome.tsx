@@ -167,22 +167,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ icon, title, description }) =
   </div>
 );
 
-interface ContactCardProps {
-  icon: React.ReactNode;
-  title: string;
-  number: string;
-  description: string;
-}
 
-const ContactCard: React.FC<ContactCardProps> = ({ icon, title, number, description }) => (
-  <div className="bg-white p-6 border border-red-100 rounded hover:border-red-300 hover:shadow-md transition cursor-default text-center">
-    <div className="mb-4 bg-red-50 inline-block p-3 rounded-full border border-red-100">
-      {icon}
-    </div>
-    <h3 className="text-lg font-bold mb-1 text-gray-900">{title}</h3>
-    <p className="text-2xl font-bold text-red-600 mb-2">{number}</p>
-    <p className="text-sm text-gray-600">{description}</p>
-  </div>
-);
+
 
 export default CitizenHome;

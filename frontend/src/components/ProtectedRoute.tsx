@@ -7,7 +7,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
-  const { token, role } = useAuth();
+  const { token, role, user } = useAuth();
 
   if (!token) {
     return <Navigate to="/" replace />;
@@ -16,7 +16,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
   if (allowedRoles && role && !allowedRoles.includes(role)) {
     // Redirect to their appropriate dashboard if they try to access wrong route
     if (role === "citizen") {
-      const username = useAuth().user?.username || "citizen"; 
+      const username = user?.username || "citizen"; 
       return (
         <Navigate
           to={`/dashboard/citizen/${username}`}

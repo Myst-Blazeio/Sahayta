@@ -3,10 +3,10 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from db import get_db
 from datetime import datetime
-from deep_translator import GoogleTranslator
+# from deep_translator import GoogleTranslator
 from ml_service import ml_service
 import uuid
-import pandas as pd
+# import pandas as pd
 from bson import ObjectId
 from werkzeug.security import generate_password_hash
 
@@ -21,7 +21,7 @@ def submit_fir():
     
     data = request.json
     
-    original_text = data.get('text')
+    original_text = data.get('original_text')
     language = data.get('language', 'en')
     
     # New Fields
@@ -39,8 +39,14 @@ def submit_fir():
     translated_text = original_text
     if language != 'en':
         try:
-            # Note: GoogleTranslator might block if used too heavily.
-            translated_text = GoogleTranslator(source='auto', target='en').translate(original_text)
+            import requests
+            url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl={language}&tl=en&dt=t&q=" + requests.utils.quote(original_text)
+            response = requests.get(url, timeout=5)
+            if response.status_code == 200:
+                # The response is a nested array. The translations are in the first array.
+                translated_text = "".join([sentence[0] for sentence in response.json()[0]])
+            else:
+                print(f"Translation API returned status {response.status_code}")
         except Exception as e:
             print(f"Translation failed: {e}")
             pass
