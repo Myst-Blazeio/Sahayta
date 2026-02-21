@@ -201,6 +201,7 @@ def get_officer_stats():
         'resolved_count': resolved_count
     })
 
+
 @police_bp.route('/alerts', methods=['GET'])
 @jwt_required()
 def alerts():
