@@ -11,35 +11,35 @@ endblock %} {% block content %}
     </div>
     <nav class="flex-1 p-4 space-y-2">
       <a
-        href="{{ url_for('police_views.dashboard') }}"
+        href="{{ url_for('police_views.dashboard', username=user.username, stationid=user.station_id) }}"
         class="flex items-center gap-3 px-4 py-3 bg-blue-50 text-blue-700 rounded-lg"
       >
         <i data-lucide="layout-dashboard"></i>
         <span class="font-medium">Dashboard</span>
       </a>
       <a
-        href="{{ url_for('police_views.inbox') }}"
+        href="{{ url_for('police_views.inbox', username=user.username, stationid=user.station_id) }}"
         class="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
       >
         <i data-lucide="file-text"></i>
         <span class="font-medium">FIR Inbox</span>
       </a>
       <a
-        href="{{ url_for('police_views.analytics') }}"
+        href="{{ url_for('police_views.analytics', username=user.username, stationid=user.station_id) }}"
         class="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
       >
         <i data-lucide="bar-chart-2"></i>
         <span class="font-medium">Analytics</span>
       </a>
       <a
-        href="{{ url_for('police_views.archives') }}"
+        href="{{ url_for('police_views.archives', username=user.username, stationid=user.station_id) }}"
         class="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
       >
         <i data-lucide="archive"></i>
         <span class="font-medium">Archives</span>
       </a>
       <a
-        href="{{ url_for('police_views.alerts') }}"
+        href="{{ url_for('police_views.alerts', username=user.username, stationid=user.station_id) }}"
         class="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
       >
         <i data-lucide="megaphone"></i>
@@ -119,7 +119,7 @@ endblock %} {% block content %}
       >
         <h3 class="font-bold text-gray-900">Recent FIRs</h3>
         <a
-          href="{{ url_for('police_views.inbox') }}"
+          href="{{ url_for('police_views.inbox', username=user.username, stationid=user.station_id) }}"
           class="text-sm text-blue-600 hover:text-blue-700 font-medium"
           >View All</a
         >
@@ -591,16 +591,28 @@ endblock %} {% block content %}
 <script id="chart-labels-data" type="application/json">
   {{ chart_labels | tojson }}
 </script>
-<script id="chart-data-data" type="application/json">
-  {{ chart_data | tojson }}
+<script id="chart-data-reported" type="application/json">
+  {{ chart_data_reported | tojson }}
+</script>
+<script id="chart-data-resolved" type="application/json">
+  {{ chart_data_resolved | tojson }}
+</script>
+<script id="chart-data-rejected" type="application/json">
+  {{ chart_data_rejected | tojson }}
 </script>
 <script>
   // Inject real data from Flask
   window.chartLabels = JSON.parse(
     document.getElementById("chart-labels-data").textContent,
   );
-  window.chartData = JSON.parse(
-    document.getElementById("chart-data-data").textContent,
+  window.chartDataReported = JSON.parse(
+    document.getElementById("chart-data-reported").textContent,
+  );
+  window.chartDataResolved = JSON.parse(
+    document.getElementById("chart-data-resolved").textContent,
+  );
+  window.chartDataRejected = JSON.parse(
+    document.getElementById("chart-data-rejected").textContent,
   );
 </script>
 <script src="{{ url_for('static', filename='js/police_dashboard.js') }}"></script>

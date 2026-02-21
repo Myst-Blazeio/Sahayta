@@ -1,5 +1,32 @@
 {% extends "base.html" %} {% block title %}Analytics - {{ user.full_name }}{%
 endblock %} {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script id="chart-labels-data" type="application/json">
+  {{ chart_labels | tojson }}
+</script>
+<script id="chart-data-reported" type="application/json">
+  {{ chart_data_reported | tojson }}
+</script>
+<script id="chart-data-resolved" type="application/json">
+  {{ chart_data_resolved | tojson }}
+</script>
+<script id="chart-data-rejected" type="application/json">
+  {{ chart_data_rejected | tojson }}
+</script>
+<script>
+  window.chartLabels = JSON.parse(
+    document.getElementById("chart-labels-data").textContent,
+  );
+  window.chartDataReported = JSON.parse(
+    document.getElementById("chart-data-reported").textContent,
+  );
+  window.chartDataResolved = JSON.parse(
+    document.getElementById("chart-data-resolved").textContent,
+  );
+  window.chartDataRejected = JSON.parse(
+    document.getElementById("chart-data-rejected").textContent,
+  );
+</script>
 <script src="{{ url_for('static', filename='js/police_dashboard.js') }}"></script>
 {% endblock %} {% block content %}
 <div class="flex h-screen bg-gray-100">
@@ -13,35 +40,35 @@ endblock %} {% block scripts %}
     </div>
     <nav class="flex-1 p-4 space-y-2">
       <a
-        href="{{ url_for('police_views.dashboard') }}"
+        href="{{ url_for('police_views.dashboard', username=user.username, stationid=user.station_id) }}"
         class="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
       >
         <i data-lucide="layout-dashboard"></i>
         <span class="font-medium">Dashboard</span>
       </a>
       <a
-        href="{{ url_for('police_views.inbox') }}"
+        href="{{ url_for('police_views.inbox', username=user.username, stationid=user.station_id) }}"
         class="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
       >
         <i data-lucide="file-text"></i>
         <span class="font-medium">FIR Inbox</span>
       </a>
       <a
-        href="{{ url_for('police_views.analytics') }}"
+        href="{{ url_for('police_views.analytics', username=user.username, stationid=user.station_id) }}"
         class="flex items-center gap-3 px-4 py-3 bg-blue-50 text-blue-700 rounded-lg"
       >
         <i data-lucide="bar-chart-2"></i>
         <span class="font-medium">Analytics</span>
       </a>
       <a
-        href="{{ url_for('police_views.archives') }}"
+        href="{{ url_for('police_views.archives', username=user.username, stationid=user.station_id) }}"
         class="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
       >
         <i data-lucide="archive"></i>
         <span class="font-medium">Archives</span>
       </a>
       <a
-        href="{{ url_for('police_views.alerts') }}"
+        href="{{ url_for('police_views.alerts', username=user.username, stationid=user.station_id) }}"
         class="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
       >
         <i data-lucide="megaphone"></i>
@@ -109,12 +136,7 @@ endblock %} {% block scripts %}
       <p class="text-sm text-gray-500 mb-4">
         AI-predicted crime trends for your jurisdiction in the coming months.
       </p>
-      <!-- Here we can reuse the chart or a more advanced one -->
-      <div
-        class="h-64 flex items-center justify-center bg-gray-50 rounded border border-dashed border-gray-300"
-      >
-        <p class="text-gray-400">Advanced Analytics Module Loading...</p>
-      </div>
+      <canvas id="crimeChart" height="100"></canvas>
     </div>
   </main>
 </div>

@@ -295,6 +295,25 @@ def get_fir_details(fir_id):
         except Exception as e:
             print(f"Error fetching user details for FIR {fir_id}: {e}")
 
+    # Fetch resolving/rejecting officer details for the frontend modal
+    officer_id = fir.get('resolved_by') or fir.get('rejected_by')
+    if officer_id:
+        officer = None
+        # Try finding by ObjectId first
+        try:
+            officer = db.police.find_one({'_id': ObjectId(officer_id)})
+        except:
+            pass
+            
+        # Fallback to standard string match if not found by ObjectId
+        if not officer:
+            officer = db.police.find_one({'_id': officer_id})
+            
+        if officer:
+            fir['officer_name'] = officer.get('full_name', 'Unknown')
+            if officer.get('station_id'):
+                 fir['officer_station'] = officer.get('station_id')
+
     return jsonify(fir), 200
 
 @fir_bp.route('/<fir_id>/update', methods=['PUT'])

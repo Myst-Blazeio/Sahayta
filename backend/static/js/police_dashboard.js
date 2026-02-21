@@ -38,20 +38,40 @@ function initChart(canvas) {
 
     // Use injected data or defaults
     const labels = window.chartLabels || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-    const data = window.chartData || [0, 0, 0, 0, 0, 0];
+    const dataReported = window.chartDataReported || [0, 0, 0, 0, 0, 0];
+    const dataResolved = window.chartDataResolved || [0, 0, 0, 0, 0, 0];
+    const dataRejected = window.chartDataRejected || [0, 0, 0, 0, 0, 0];
 
     new Chart(ctx, {
         type: 'line',
         data: {
             labels: labels,
-            datasets: [{
-                label: 'Reported Crimes',
-                data: data,
-                borderColor: '#2563EB',
-                backgroundColor: 'rgba(37, 99, 235, 0.1)',
-                tension: 0.4,
-                fill: true
-            }]
+            datasets: [
+                {
+                    label: 'Total Reported',
+                    data: dataReported,
+                    borderColor: '#2563EB', // Blue
+                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                    tension: 0.4,
+                    fill: false
+                },
+                {
+                    label: 'Resolved',
+                    data: dataResolved,
+                    borderColor: '#10B981', // Green
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    tension: 0.4,
+                    fill: false
+                },
+                {
+                    label: 'Rejected',
+                    data: dataRejected,
+                    borderColor: '#EF4444', // Red
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    tension: 0.4,
+                    fill: false
+                }
+            ]
         },
         options: {
             responsive: true,
@@ -138,6 +158,16 @@ window.openReviewModal = async function (firId) {
         document.getElementById('modalStatus').value = fir.status;
         document.getElementById('modalNotes').value = fir.police_notes || '';
         document.getElementById('modalSections').value = (fir.applicable_sections || []).join(', ');
+
+        // Handle Officer details (Archives)
+        const officerDetailsEl = document.getElementById('modalOfficerDetails');
+        if (officerDetailsEl) {
+            if (fir.officer_name) {
+                officerDetailsEl.textContent = `${fir.officer_name} (Station: ${fir.officer_station || 'Unknown'})`;
+            } else {
+                officerDetailsEl.textContent = 'Data unavailable';
+            }
+        }
 
     } catch (error) {
         console.error(error);
@@ -346,10 +376,14 @@ window.updateFIR = async function () {
 window.filterTable = function () {
     const searchInput = document.getElementById('searchFirs');
     const statusSelect = document.getElementById('filterStatus');
-    if (!searchInput) return;
+    const stationSelect = document.getElementById('filterStation'); // New filter
 
-    const filterText = searchInput.value.toLowerCase();
+    // We might be on a page without search filters (e.g. Profile)
+    if (!searchInput && !statusSelect && !stationSelect) return;
+
+    const filterText = searchInput ? searchInput.value.toLowerCase() : '';
     const filterStatus = statusSelect ? statusSelect.value.toLowerCase() : '';
+    const filterStation = stationSelect ? stationSelect.value.toLowerCase() : '';
 
     const table = document.querySelector('table tbody');
     if (!table) return;
@@ -362,29 +396,31 @@ window.filterTable = function () {
         const firId = rows[i].cells[0].textContent.toLowerCase();
         const complainant = rows[i].cells[1].textContent.toLowerCase();
 
-        // Find status - it can be at index 3 or 4 depending on page
-        // Dashboard/Archives: ID(0), Complainant(1), Date(2), Status(3)
-        // Inbox: ID(0), Complainant(1), Date(2), Location(3), Status(4)
+        // Determine columns. Archives has an extra Station column.
+        // Dashboard/Archives: ID(0), Complainant(1), Date(2)
+        // Archives Structure: Date(2), Station(3), Status(4)
+        // Inbox Structure: ID(0), Complainant(1), Date(2), Status(3) (or 4 depending on setup)
 
-        let statusSpan = rows[i].cells[3].querySelector('span');
         let statusText = '';
+        let stationText = '';
 
+        // Search for status pill
+        let statusSpan = rows[i].querySelector('span.rounded-full');
         if (statusSpan) {
             statusText = statusSpan.textContent.trim().toLowerCase();
         }
 
-        // If index 3 didn't yield a status span, try index 4 (Inbox)
-        if (!statusText || !['pending', 'in progress', 'resolved', 'rejected'].includes(statusText)) {
-            let statusSpanInbox = rows[i].cells[4]?.querySelector('span');
-            if (statusSpanInbox) {
-                statusText = statusSpanInbox.textContent.trim().toLowerCase();
-            }
+        // Search for station text (Archives specific)
+        let stationSpan = rows[i].querySelector('span.station-cell');
+        if (stationSpan) {
+            stationText = stationSpan.textContent.trim().toLowerCase();
         }
 
         const matchesText = firId.includes(filterText) || complainant.includes(filterText);
         const matchesStatus = filterStatus === '' || statusText === filterStatus;
+        const matchesStation = filterStation === '' || stationText === filterStation;
 
-        if (matchesText && matchesStatus) {
+        if (matchesText && matchesStatus && matchesStation) {
             rows[i].style.display = '';
         } else {
             rows[i].style.display = 'none';

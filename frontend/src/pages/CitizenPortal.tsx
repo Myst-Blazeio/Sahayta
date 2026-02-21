@@ -27,8 +27,9 @@ const CitizenPortal = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [alerts, setAlerts] = useState<CommunityAlert[]>([]);
   const [showNotifs, setShowNotifs] = useState(false);
-  const { username } = useParams();
-  const { token, role } = useAuth();
+  const { token, role, user } = useAuth();
+  const searchParams = new URLSearchParams(window.location.search);
+  const urlUsername = searchParams.get("username") || user?.username || "Citizen";
 
   useEffect(() => {
     if (token && role === "citizen") {
@@ -80,7 +81,7 @@ const CitizenPortal = () => {
         <header className="mb-8 flex justify-between items-start">
           <div>
             <h1 className="text-3xl font-bold text-foreground">
-              Welcome, {username}
+              Welcome, {urlUsername}
             </h1>
             <p className="text-muted-foreground">
               Access police services online.

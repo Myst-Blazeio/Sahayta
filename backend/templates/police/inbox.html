@@ -11,35 +11,35 @@ endblock %} {% block content %}
     </div>
     <nav class="flex-1 p-4 space-y-2">
       <a
-        href="{{ url_for('police_views.dashboard') }}"
+        href="{{ url_for('police_views.dashboard', username=user.username, stationid=user.station_id) }}"
         class="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
       >
         <i data-lucide="layout-dashboard"></i>
         <span class="font-medium">Dashboard</span>
       </a>
       <a
-        href="{{ url_for('police_views.inbox') }}"
+        href="{{ url_for('police_views.inbox', username=user.username, stationid=user.station_id) }}"
         class="flex items-center gap-3 px-4 py-3 bg-blue-50 text-blue-700 rounded-lg"
       >
         <i data-lucide="file-text"></i>
         <span class="font-medium">FIR Inbox</span>
       </a>
       <a
-        href="{{ url_for('police_views.analytics') }}"
+        href="{{ url_for('police_views.analytics', username=user.username, stationid=user.station_id) }}"
         class="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
       >
         <i data-lucide="bar-chart-2"></i>
         <span class="font-medium">Analytics</span>
       </a>
       <a
-        href="{{ url_for('police_views.archives') }}"
+        href="{{ url_for('police_views.archives', username=user.username, stationid=user.station_id) }}"
         class="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
       >
         <i data-lucide="archive"></i>
         <span class="font-medium">Archives</span>
       </a>
       <a
-        href="{{ url_for('police_views.alerts') }}"
+        href="{{ url_for('police_views.alerts', username=user.username, stationid=user.station_id) }}"
         class="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
       >
         <i data-lucide="megaphone"></i>
@@ -407,7 +407,7 @@ endblock %} {% block content %}
             >
             <div
               id="modalOriginalText"
-              class="mt-1 text-sm text-gray-800 bg-gray-50 p-2 rounded max-h-40 overflow-y-auto whitespace-pre-wrap text-xs"
+              class="mt-1 text-sm text-gray-800 bg-gray-50 p-2 rounded max-h-40 overflow-y-auto whitespace-pre-wrap"
             ></div>
           </div>
         </div>

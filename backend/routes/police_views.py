@@ -1,3 +1,4 @@
+from functools import wraps
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify
 from werkzeug.security import check_password_hash, generate_password_hash
 from db import get_db
@@ -7,6 +8,36 @@ from flask_jwt_extended import create_access_token, set_access_cookies, unset_jw
 # Create a Blueprint for the Frontend (HTML Views) served by Backend
 # Note: we use 'police_views' to distinguish from 'police_bp' (API)
 police_views = Blueprint('police_views', __name__, template_folder='../templates')
+
+def require_route_protection(f):
+    """
+    Decorator to enforce dynamic unique URL routes.
+    Requires both `?username=...` and `&stationid=...`.
+    If missing or mismatched, heavily redirects back to safe known state.
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session or 'username' not in session or 'station_id' not in session:
+            return redirect(url_for('police_views.login'))
+            
+        active_username = session['username']
+        active_station_id = session['station_id']
+        
+        url_username = request.args.get('username')
+        url_station_id = request.args.get('stationid')
+        
+        # If parameters are missing entirely, inject them safely
+        if not url_username or not url_station_id:
+            return redirect(url_for(request.endpoint, username=active_username, stationid=active_station_id, **request.view_args))
+            
+        # If parameters exist but are tampered with / swapped tabs
+        if url_username != active_username or str(url_station_id) != str(active_station_id):
+            flash(f"Route protection triggered. Your active session is {active_username} at Station {active_station_id}.", "error")
+            return redirect(url_for('police_views.dashboard', username=active_username, stationid=active_station_id))
+            
+        return f(*args, **kwargs)
+    return decorated_function
+
 
 @police_views.route('/login', methods=['GET', 'POST'])
 def login():
@@ -21,6 +52,7 @@ def login():
             session['user_id'] = str(user['_id'])
             session['role'] = 'police'
             session['username'] = user['username']
+            session['station_id'] = user.get('station_id')
 
             # Generate JWT token
             claims = {
@@ -29,7 +61,7 @@ def login():
             }
             access_token = create_access_token(identity=str(user['_id']), additional_claims=claims, expires_delta=datetime.timedelta(days=1))
             
-            resp = redirect(url_for('police_views.dashboard'))
+            resp = redirect(url_for('police_views.dashboard', username=user['username'], stationid=user.get('station_id')))
             set_access_cookies(resp, access_token)
             return resp
         
@@ -109,58 +141,106 @@ def stats():
     })
 
 
-@police_views.route('/dashboard')
-def dashboard():
-    if 'user_id' not in session:
-        return redirect(url_for('police_views.login'))
+def get_global_chart_data(db):
+    import calendar
+    from dateutil.relativedelta import relativedelta
+    import datetime
+    
+    today = datetime.datetime.utcnow()
+    # Go back 5 months from the current month to get 6 months total (including current)
+    start_month_date = today - relativedelta(months=5)
+    
+    chart_labels = []
+    chart_data_reported = []
+    chart_data_resolved = []
+    chart_data_rejected = []
+    
+    for i in range(6):
+        target_date = start_month_date + relativedelta(months=i)
         
+        # Start and end of the target month
+        start_of_month = datetime.datetime(target_date.year, target_date.month, 1)
+        last_day = calendar.monthrange(target_date.year, target_date.month)[1]
+        end_of_month = datetime.datetime(target_date.year, target_date.month, last_day, 23, 59, 59, 999999)
+        
+        # Label: "Jan 2026"
+        month_label = target_date.strftime('%b %Y')
+        chart_labels.append(month_label)
+        
+        # Total Reported in this month (from both firs and archives collections based on submission_date)
+        reported_firs = db.firs.count_documents({
+            'submission_date': {'$gte': start_of_month, '$lte': end_of_month}
+        })
+        reported_archives = db.archives.count_documents({
+            'submission_date': {'$gte': start_of_month, '$lte': end_of_month}
+        })
+        chart_data_reported.append(reported_firs + reported_archives)
+        
+        # Resolved Cases in this month (from archives based on last_updated or submission_date)
+        resolved_count = db.archives.count_documents({
+            'status': 'resolved',
+            '$or': [
+                {'last_updated': {'$gte': start_of_month, '$lte': end_of_month}},
+                {'last_updated': {'$exists': False}, 'submission_date': {'$gte': start_of_month, '$lte': end_of_month}}
+            ]
+        })
+        chart_data_resolved.append(resolved_count)
+        
+        # Rejected Cases in this month
+        rejected_count = db.archives.count_documents({
+            'status': 'rejected',
+            '$or': [
+                {'last_updated': {'$gte': start_of_month, '$lte': end_of_month}},
+                {'last_updated': {'$exists': False}, 'submission_date': {'$gte': start_of_month, '$lte': end_of_month}}
+            ]
+        })
+        chart_data_rejected.append(rejected_count)
+        
+    return chart_labels, chart_data_reported, chart_data_resolved, chart_data_rejected
+
+@police_views.route('/dashboard')
+@require_route_protection
+def dashboard():
     db = get_db()
     user = db.police.find_one({'username': session['username']})
     
-    # Fetch Stats
-    pending_count = db.firs.count_documents({'status': 'pending'})
+    # Fetch Stats for this station only
+    station_id = str(user.get('station_id')) if user.get('station_id') else None
+    pending_count = db.firs.count_documents({'status': 'pending', 'station_id': station_id})
     
-    # Fetch Recent FIRs
-    firs = list(db.firs.find().sort('submission_date', -1).limit(5))
+    # Fetch Recent FIRs for this station
+    firs = list(db.firs.find({'station_id': station_id}).sort('submission_date', -1).limit(5))
     
-    # Simple Chart Data (Dummy/Placeholder for now, or real aggregation)
-    # Aggregation for Crime Trends
-    pipeline = [
-        {"$group": {"_id": "$status", "count": {"$sum": 1}}}
-    ]
-    status_counts = list(db.firs.aggregate(pipeline))
-    
-    chart_labels = [item['_id'].title() for item in status_counts]
-    chart_data = [item['count'] for item in status_counts]
+    # Calculate Crime Trends (Last 6 Months Global)
+    chart_labels, chart_data_reported, chart_data_resolved, chart_data_rejected = get_global_chart_data(db)
     
     return render_template('police/dashboard.html', 
                            user=user, 
                            pending_count=pending_count, 
                            firs=firs,
                            chart_labels=chart_labels,
-                           chart_data=chart_data)
+                           chart_data_reported=chart_data_reported,
+                           chart_data_resolved=chart_data_resolved,
+                           chart_data_rejected=chart_data_rejected)
 
 @police_views.route('/inbox')
+@require_route_protection
 def inbox():
-    if 'user_id' not in session:
-        return redirect(url_for('police_views.login'))
-        
     db = get_db()
     user = db.police.find_one({'username': session['username']})
     
-    # Fetch Pending & In Progress FIRs for this station (or all for now if no station filter logic strictness)
-    # Assuming station_id filter should apply if we had multiple stations. For now, fetch all non-archived.
+    # Fetch Pending & In Progress FIRs for this station
+    station_id = str(user.get('station_id')) if user.get('station_id') else None
     firs = list(db.firs.find({
-        'status': {'$in': ['pending', 'in_progress']}
+        'status': {'$in': ['pending', 'in_progress']},
+        'station_id': station_id
     }).sort('submission_date', -1))
     
     return render_template('police/inbox.html', user=user, firs=firs)
 
 @police_views.route('/archives')
+@require_route_protection
 def archives():
-    if 'user_id' not in session:
-        return redirect(url_for('police_views.login'))
-        
     db = get_db()
     user = db.police.find_one({'username': session['username']})
     
@@ -169,23 +249,59 @@ def archives():
         'status': {'$in': ['resolved', 'rejected']}
     }).sort('submission_date', -1))
     
-    # print(f"DEBUG: Found {len(firs)} archived FIRs for user {user.get('username')}")
+    unique_stations = set()
     
-    return render_template('police/archives.html', user=user, firs=firs)
+    # Enrich FIRs with resolving/rejecting officer details
+    for fir in firs:
+        officer_id = fir.get('resolved_by') or fir.get('rejected_by')
+        fir['officer_name'] = 'Unknown'
+        fir['officer_station'] = 'Unknown'
+        
+        if officer_id:
+            officer = None
+            try:
+                from bson import ObjectId
+                officer = db.police.find_one({'_id': ObjectId(officer_id)})
+            except:
+                pass
+                
+            if not officer:
+                officer = db.police.find_one({'_id': officer_id})
+                
+            if officer:
+                fir['officer_name'] = officer.get('full_name', 'Unknown')
+                if officer.get('station_id'):
+                     fir['officer_station'] = officer.get('station_id')
+                
+        if fir['officer_station'] and fir['officer_station'] != 'Unknown':
+             unique_stations.add(fir['officer_station'])
+             
+    # Sort stations for the dropdown
+    stations_list = sorted(list(unique_stations))
+    
+    return render_template('police/archives.html', user=user, firs=firs, stations=stations_list)
 
 @police_views.route('/analytics')
+@require_route_protection
 def analytics():
-    if 'user_id' not in session:
-        return redirect(url_for('police_views.login'))
-        
     db = get_db()
     user = db.police.find_one({'username': session['username']})
     
-    # Calculate Stats
-    total = db.firs.count_documents({})
-    resolved = db.archives.count_documents({'status': 'resolved'})
-    pending = db.firs.count_documents({'status': 'pending'})
-    rejected = db.archives.count_documents({'status': 'rejected'})
+    # Calculate Stats for the specific station
+    # Force station_id to be a string to match DB storage
+    station_id = str(user.get('station_id')) if user.get('station_id') else None
+    
+    pending = db.firs.count_documents({'status': 'pending', 'station_id': station_id})
+    resolved = db.archives.count_documents({'status': 'resolved', 'station_id': station_id})
+    rejected = db.archives.count_documents({'status': 'rejected', 'station_id': station_id})
+    
+    print(f"DEBUG [Analytics route]: Officer {user.get('username')} at Station {station_id}")
+    print(f"DEBUG [Analytics route]: Query resolved={resolved}, pending={pending}, rejected={rejected}")
+    
+    # Total Cases is the sum of Active FIRs + Archived FIRs for this station
+    total_firs = db.firs.count_documents({'station_id': station_id})
+    total_archives = db.archives.count_documents({'station_id': station_id})
+    total = total_firs + total_archives
     
     stats = {
         'total': total,
@@ -194,23 +310,23 @@ def analytics():
         'rejected': rejected
     }
     
-    return render_template('police/analytics.html', user=user, stats=stats)
+    chart_labels, chart_data_reported, chart_data_resolved, chart_data_rejected = get_global_chart_data(db)
+    
+    return render_template('police/analytics.html', user=user, stats=stats, 
+                           chart_labels=chart_labels, chart_data_reported=chart_data_reported,
+                           chart_data_resolved=chart_data_resolved, chart_data_rejected=chart_data_rejected)
 
 @police_views.route('/profile')
+@require_route_protection
 def profile():
-    if 'user_id' not in session:
-        return redirect(url_for('police_views.login'))
-        
     db = get_db()
     user = db.police.find_one({'username': session['username']})
     
     return render_template('police/profile.html', user=user)
 
 @police_views.route('/alerts')
+@require_route_protection
 def alerts():
-    if 'user_id' not in session:
-        return redirect(url_for('police_views.login'))
-        
     db = get_db()
     user = db.police.find_one({'username': session['username']})
     

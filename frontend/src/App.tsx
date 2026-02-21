@@ -23,7 +23,7 @@ function App() {
           {/* Citizen Protected Routes */}
           <Route element={<ProtectedRoute allowedRoles={["citizen"]} />}>
             <Route
-              path="/dashboard/citizen/:username"
+              path="/dashboard/citizen"
               element={<CitizenPortal />}
             />
             <Route path="/citizen/profile" element={<CitizenProfile />} />
