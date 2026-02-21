@@ -14,6 +14,10 @@ export interface Station {
   station_id: string;
   station_name: string;
   location?: string;
+  address?: string;
+  officer_in_charge?: string;
+  contact_number?: string;
+  email?: string;
   [key: string]: any;
 }
 
@@ -21,7 +25,13 @@ export interface FIR {
   _id: string;
   user_id: string;
   station_id: string;
-  status: "pending" | "accepted" | "rejected" | "resolved";
+  status: "submitted" | "under_review" | "registered" | "investigating" | "closed" | "rejected";
+  status_history: {
+    status: string;
+    timestamp: string;
+    note?: string;
+  }[];
+  filing_number?: string;
   original_text: string;
   incident_date: string;
   incident_time: string;

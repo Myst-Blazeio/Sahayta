@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { User } from "../types";
+import { api } from "../services/api";
 
 interface AuthContextType {
   user: User | null;
@@ -30,10 +31,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setRole(storedRole);
         try {
           // Fetch fresh user data
-          const response = await fetch("/api/auth/me", {
-            headers: { Authorization: `Bearer ${storedToken}` },
-          });
-          if (response.ok) {
+          // const response = await fetch("/api/auth/me", {
+          //   headers: { Authorization: `Bearer ${storedToken}` },
+          // });
+
+          // Use mock API instead
+          const response = await api.getMe();
+
+          if (response.ok && response.json) {
             const userData: User = await response.json();
             setUser(userData);
             // Update session storage with fresh data
@@ -75,7 +80,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Redirect to Flask backend for police logout or stays here for citizen?
     // Actually, police logout is now handled by backend routes, but if we are here, we might need to redirect.
     // For now, simple client side clear is fine.
-    
+
     navigate("/");
   };
 

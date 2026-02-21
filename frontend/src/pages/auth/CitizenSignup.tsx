@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
-import axios from "axios";
+// import axios from "axios";
+import { api } from "../../services/api";
 
 const CitizenSignup = () => {
   const [formData, setFormData] = useState({
@@ -31,7 +32,7 @@ const CitizenSignup = () => {
     }
 
     try {
-      await axios.post("/api/auth/register", {
+      await api.register({
         username: formData.username,
         password: formData.password,
         full_name: formData.full_name,

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import axios from "axios";
+// import axios from "axios";
+import { api } from "../services/api";
 import { generateFIRPDF } from "../utils/pdfGenerator";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -19,6 +20,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { Notification, Station, FIR } from "../types";
+import FIRTimeline from "../components/timeline/FIRTimeline";
 
 const CitizenPortal = () => {
   const [activeTab, setActiveTab] = useState("services");
@@ -37,9 +39,7 @@ const CitizenPortal = () => {
 
   const fetchNotifications = async () => {
     try {
-      const res = await axios.get("/api/fir/notifications", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.getNotifications();
       setNotifications(res.data);
     } catch (e) {
       console.error("Failed to fetch notifications");
@@ -48,11 +48,7 @@ const CitizenPortal = () => {
 
   const markRead = async (id: string) => {
     try {
-      await axios.put(
-        `/api/fir/notifications/${id}/read`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      await api.markNotificationRead(id);
       setNotifications(
         notifications.map((n) => (n._id === id ? { ...n, is_read: true } : n)),
       );
@@ -149,11 +145,10 @@ const CitizenPortal = () => {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
-                activeTab === tab
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:bg-background/50"
-              }`}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${activeTab === tab
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:bg-background/50"
+                }`}
             >
               {tab === "services" && "Services"}
               {tab === "new-fir" && "File FIR"}
@@ -230,13 +225,24 @@ const NewFIRTab: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) => {
   const [stations, setStations] = useState<Station[]>([]);
   const [msg, setMsg] = useState("");
   const [dateWarning, setDateWarning] = useState("");
-  const { token } = useAuth();
+  // const { token } = useAuth(); // token not used here currently as api handles it or it's not needed for this component's logic? 
+  // Wait, looking at the code, it uses api.submitFIR which presumably doesn't need token passed explicitly if api handles it? 
+  // Actually api.submitFIR doesn't take token. 
+  // Let's just remove it.
+  const { } = useAuth(); // If nothing else is used? No, let's see context. 
+  // It was `const { token } = useAuth();`
+  // I will just remove the line if it's the only thing. 
+  // Or if I can't leave empty pattern, I'll remove the line. 
+  // However, I need to be careful not to break validity if useAuth is needed for something else. 
+  // In the file content from step 166: `const { token } = useAuth();` is at line 227 inside `NewFIRTab`.
+  // It is NOT used in `NewFIRTab`.
+
 
   useEffect(() => {
     // Fetch stations on mount
     const fetchStations = async () => {
       try {
-        const res = await axios.get("/api/auth/stations");
+        const res = await api.getStations();
         setStations(res.data);
       } catch (err) {
         console.error("Failed to fetch stations", err);
@@ -276,9 +282,7 @@ const NewFIRTab: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) => {
     setMsg("");
 
     try {
-      await axios.post("/api/fir/", formData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.submitFIR(formData);
       setMsg("FIR Submitted Successfully!");
       setTimeout(() => onSuccess(), 1500);
     } catch (error) {
@@ -291,7 +295,7 @@ const NewFIRTab: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) => {
   return (
     <div className="max-w-2xl mx-auto bg-card p-8 rounded-lg border border-border official-card">
       <h2 className="text-2xl font-bold mb-6 text-blue-900">File a New FIR</h2>
-      
+
       {/* Legal Warning */}
       <div className="bg-amber-50 border-l-4 border-amber-500 p-4 mb-6">
         <div className="flex items-start">
@@ -512,10 +516,8 @@ const HistoryTab = () => {
     const fetchData = async () => {
       try {
         const [firRes, stationRes] = await Promise.all([
-          axios.get("/api/fir/", {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get("/api/auth/stations"),
+          api.getFIRs(),
+          api.getStations(),
         ]);
         setFirs(firRes.data);
         setStations(stationRes.data);
@@ -532,7 +534,7 @@ const HistoryTab = () => {
     return <div className="text-center py-8">Loading records...</div>;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <h2 className="text-2xl font-bold mb-4">My FIR Status</h2>
       {firs.length === 0 ? (
         <div className="text-center p-8 bg-muted rounded">
@@ -540,55 +542,94 @@ const HistoryTab = () => {
         </div>
       ) : (
         firs.map((fir) => {
-          const stationName =
-            stations.find((s) => s.station_id === fir.station_id)
-              ?.station_name || fir.station_id;
+          const station = stations.find((s) => s.station_id === fir.station_id);
+
           return (
             <div
               key={fir._id}
-              className="p-5 border rounded-lg bg-card shadow-sm flex flex-col md:flex-row justify-between gap-4 official-card"
+              className="p-6 border rounded-lg bg-card shadow-sm flex flex-col gap-6 official-card"
             >
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="font-bold text-lg">
-                    FIR #{fir._id.slice(0, 8)}...
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {new Date(fir.submission_date).toLocaleDateString()}
-                  </span>
-                </div>
-                <p className="text-sm text-foreground/80 line-clamp-2">
-                  {fir.original_text}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Loc: {fir.location} | Station: {stationName || "N/A"}
-                </p>
-              </div>
-              <div className="flex flex-col items-end gap-2 min-w-[120px]">
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-bold uppercase self-end ${
-                    fir.status === "pending"
-                      ? "bg-yellow-100 text-yellow-800"
-                      : fir.status === "accepted"
-                        ? "bg-blue-100 text-blue-800"
-                        : fir.status === "resolved"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-gray-100"
-                  }`}
-                >
-                  {fir.status.replace("_", " ")}
-                </span>
-
-                {fir.status === "resolved" && (
-                  <div className="mt-auto pt-4">
-                    <button
-                      onClick={() => generateFIRPDF(fir)}
-                      className="text-xs text-primary hover:underline flex items-center gap-1"
-                    >
-                      <Download size={14} /> Download Report
-                    </button>
+              {/* Header */}
+              <div className="flex justify-between items-start">
+                <div>
+                  <div className="flex items-center gap-3 mb-1">
+                    <span className="font-bold text-xl text-blue-900">
+                      {fir.filing_number || fir._id}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded textxs font-bold uppercase border
+                            ${fir.status === 'closed' ? 'bg-gray-100 text-gray-600 border-gray-300' :
+                        fir.status === 'rejected' ? 'bg-red-50 text-red-600 border-red-200' :
+                          'bg-green-50 text-green-700 border-green-200'}
+                        `}>
+                      {fir.status.replace("_", " ")}
+                    </span>
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    Filed on: {new Date(fir.submission_date).toLocaleDateString()} at {new Date(fir.submission_date).toLocaleTimeString()}
+                  </p>
+                </div>
+                {fir.status === "closed" && (
+                  <button
+                    onClick={() => generateFIRPDF(fir)}
+                    className="text-sm border border-primary text-primary px-3 py-1.5 rounded hover:bg-primary hover:text-white transition flex items-center gap-2"
+                  >
+                    <Download size={16} /> Download Copy
+                  </button>
                 )}
+              </div>
+
+              {/* Timeline */}
+              <div className="bg-muted/30 p-4 rounded-lg">
+                <h4 className="text-sm font-semibold mb-4 text-gray-600 uppercase tracking-wide">Tracking Status</h4>
+                <FIRTimeline status={fir.status} statusHistory={fir.status_history || []} />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Incident Details */}
+                <div>
+                  <h4 className="text-sm font-semibold mb-2 text-gray-600 border-b pb-1">Incident Details</h4>
+                  <p className="text-sm text-foreground mb-1">
+                    <span className="font-medium">Description:</span> {fir.original_text}
+                  </p>
+                  <p className="text-sm text-foreground mb-1">
+                    <span className="font-medium">Location:</span> {fir.location}
+                  </p>
+                  <p className="text-sm text-foreground">
+                    <span className="font-medium">Date & Time:</span> {fir.incident_date} at {fir.incident_time}
+                  </p>
+                </div>
+
+                {/* Assigned Station Info */}
+                <div>
+                  <h4 className="text-sm font-semibold mb-2 text-gray-600 border-b pb-1">Assigned Police Station</h4>
+                  {station ? (
+                    <div className="text-sm">
+                      <p className="font-bold text-lg mb-1">{station.station_name}</p>
+                      <div className="space-y-1 text-muted-foreground">
+                        <p className="flex items-start gap-2">
+                          <span className="shrink-0 w-4 block">📍</span>
+                          {station.address || station.location}
+                        </p>
+                        <p className="flex items-center gap-2">
+                          <span className="shrink-0 w-4 block">👤</span>
+                          In-Charge: {station.officer_in_charge}
+                        </p>
+                        <p className="flex items-center gap-2">
+                          <span className="shrink-0 w-4 block">📞</span>
+                          {station.contact_number}
+                        </p>
+                        {station.email && (
+                          <p className="flex items-center gap-2">
+                            <span className="shrink-0 w-4 block">✉️</span>
+                            {station.email}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-red-500">Station information unavailable.</p>
+                  )}
+                </div>
               </div>
             </div>
           );

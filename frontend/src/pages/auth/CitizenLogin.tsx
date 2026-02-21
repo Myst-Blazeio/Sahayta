@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
-import axios from "axios";
+// import axios from "axios";
+import { api } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 
 const CitizenLogin = () => {
@@ -16,7 +17,7 @@ const CitizenLogin = () => {
     e.preventDefault();
     setError("");
     try {
-      const response = await axios.post("/api/auth/login", {
+      const response = await api.login({
         username,
         password,
       });
@@ -27,7 +28,7 @@ const CitizenLogin = () => {
         return;
       }
 
-      login(userData, token, role);
+      login({ ...userData, role }, token, role);
 
       navigate(`/dashboard/citizen/${userData.username}`, { replace: true });
     } catch (err: any) {
