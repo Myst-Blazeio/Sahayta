@@ -104,20 +104,40 @@ const CommunityAlerts: React.FC<CommunityAlertsProps> = ({ alerts = [] }) => {
     const [filterType, setFilterType] = useState<AlertType | "all">("all");
     const [showFilters, setShowFilters] = useState(false);
 
-    // Map backend alerts to frontend CommunityAlert type if needed, or use them directly if types match.
-    // We assume backend returns properties roughly matching the type, or we fallback.
-    const normalizedAlerts: CommunityAlert[] = alerts.map((a: any) => ({
-        id: a._id || a.id || String(Math.random()),
-        type: (a.type || "advisory") as AlertType,
-        severity: (a.severity || "low") as AlertSeverity,
-        title: a.title || "Alert",
-        summary: a.message || a.summary || "",
-        details: a.details || a.message || "",
-        location: a.location || a.station_id || "Unknown Area",
-        issued_at: a.created_at || a.issued_at || new Date().toISOString(),
-        expires_at: a.expires_at || null,
-        is_active: a.is_active !== false,
-    }));
+    const VALID_TYPES: AlertType[] = ["crime", "safety", "emergency", "advisory", "update"];
+    const VALID_SEVERITIES: AlertSeverity[] = ["critical", "high", "medium", "low"];
+
+    const normalizedAlerts: CommunityAlert[] = alerts.map((a: any) => {
+        const rawType = (a.type || "advisory").toLowerCase();
+        const rawSeverity = (a.severity || "low").toLowerCase();
+
+        const safeType: AlertType = VALID_TYPES.includes(rawType as AlertType)
+            ? (rawType as AlertType)
+            : "advisory";
+
+        const safeSeverity: AlertSeverity = VALID_SEVERITIES.includes(rawSeverity as AlertSeverity)
+            ? (rawSeverity as AlertSeverity)
+            : "low";
+
+        // Handle MongoDB date format: {$date: ...} or plain ISO string
+        let issued_at = a.created_at || a.issued_at || new Date().toISOString();
+        if (issued_at && typeof issued_at === "object" && issued_at.$date) {
+            issued_at = issued_at.$date;
+        }
+
+        return {
+            id: a._id || a.id || String(Math.random()),
+            type: safeType,
+            severity: safeSeverity,
+            title: a.title || "Alert",
+            summary: a.message || a.summary || "",
+            details: a.details || a.message || "",
+            location: a.location || a.station_id || "Unknown Area",
+            issued_at,
+            expires_at: a.expires_at || null,
+            is_active: a.is_active !== false,
+        };
+    });
 
     const filteredAlerts =
         filterType === "all"
@@ -127,8 +147,12 @@ const CommunityAlerts: React.FC<CommunityAlertsProps> = ({ alerts = [] }) => {
     const criticalCount = normalizedAlerts.filter((a) => a.severity === "critical").length;
 
     const timeAgo = (dateStr: string) => {
-        const diff = Date.now() - new Date(dateStr).getTime();
+        if (!dateStr) return "Unknown time";
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return "Unknown time";
+        const diff = Date.now() - d.getTime();
         const mins = Math.floor(diff / 60000);
+        if (mins < 1) return "Just now";
         if (mins < 60) return `${mins}m ago`;
         const hrs = Math.floor(mins / 60);
         if (hrs < 24) return `${hrs}h ago`;

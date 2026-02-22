@@ -14,12 +14,12 @@
     }
 
     try {
-      const response = await fetch("/police/alerts", {
+      const response = await fetch("/api/police/alerts", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ title, message, severity }),
+        body: JSON.stringify({ title, message, type: severity }), // Send selected type as 'type'
       });
 
       if (response.ok) {
@@ -51,7 +51,7 @@
     }
 
     try {
-      const response = await fetch(`/police/alerts/${alertId}`, {
+      const response = await fetch(`/api/police/alerts/${alertId}`, {
         method: "DELETE",
       });
 
@@ -110,7 +110,41 @@
   // Ensure Lucide icons render after page load
   document.addEventListener("DOMContentLoaded", function () {
     lucide.createIcons();
+    filterAlerts("all"); // Add initial filter run
   });
+
+  function filterAlerts(type) {
+    // Update active button styling
+    document.querySelectorAll(".filter-btn").forEach((btn) => {
+      if (btn.dataset.type === type) {
+        btn.classList.add("bg-blue-600", "text-white", "border-blue-600");
+        btn.classList.remove("bg-white", "text-gray-600", "border-gray-200");
+      } else {
+        btn.classList.remove("bg-blue-600", "text-white", "border-blue-600");
+        btn.classList.add("bg-white", "text-gray-600", "border-gray-200");
+      }
+    });
+
+    // Filter cards
+    let visibleCount = 0;
+    document.querySelectorAll(".alert-card").forEach((card) => {
+      if (type === "all" || card.dataset.type === type) {
+        card.style.display = "block";
+        visibleCount++;
+      } else {
+        card.style.display = "none";
+      }
+    });
+
+    const emptyState = document.getElementById("emptyState");
+    if (emptyState) {
+      if (visibleCount === 0) {
+        emptyState.style.display = "block";
+      } else {
+        emptyState.style.display = "none";
+      }
+    }
+  }
 </script>
 {% endblock %} {% block content %}
 <div class="flex h-screen bg-gray-100">
@@ -220,15 +254,17 @@
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1"
-                >Severity Level</label
+                >Alert Category</label
               >
               <select
                 id="alertSeverity"
                 class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
               >
-                <option value="emergency">Emergency (Red)</option>
-                <option value="important" selected>Important (Amber)</option>
-                <option value="info">Information (Blue)</option>
+                <option value="crime">Crime Alert</option>
+                <option value="safety">Safety Warning</option>
+                <option value="emergency">Emergency</option>
+                <option value="advisory">Advisory</option>
+                <option value="update">Update</option>
               </select>
             </div>
             <div>
@@ -257,23 +293,75 @@
       <!-- Sent Alerts History -->
       <div class="lg:col-span-2">
         <div
-          class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
+          class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-[750px]"
         >
           <div class="p-6 border-b">
-            <h3 class="text-lg font-bold text-gray-900">Broadcast History</h3>
+            <h3 class="text-lg font-bold text-gray-900 mb-4">
+              Broadcast History
+            </h3>
+
+            <!-- Filters -->
+            <div class="flex flex-wrap gap-2">
+              <button
+                onclick="filterAlerts('all')"
+                data-type="all"
+                class="filter-btn px-4 py-1.5 rounded-full text-sm font-medium border bg-blue-600 text-white border-blue-600 transition-colors"
+              >
+                All
+              </button>
+              <button
+                onclick="filterAlerts('crime')"
+                data-type="crime"
+                class="filter-btn px-4 py-1.5 rounded-full text-sm font-medium border bg-white text-gray-600 border-gray-200 hover:bg-gray-50 transition-colors"
+              >
+                Crime Alert
+              </button>
+              <button
+                onclick="filterAlerts('safety')"
+                data-type="safety"
+                class="filter-btn px-4 py-1.5 rounded-full text-sm font-medium border bg-white text-gray-600 border-gray-200 hover:bg-gray-50 transition-colors"
+              >
+                Safety Warning
+              </button>
+              <button
+                onclick="filterAlerts('emergency')"
+                data-type="emergency"
+                class="filter-btn px-4 py-1.5 rounded-full text-sm font-medium border bg-white text-gray-600 border-gray-200 hover:bg-gray-50 transition-colors"
+              >
+                Emergency
+              </button>
+              <button
+                onclick="filterAlerts('advisory')"
+                data-type="advisory"
+                class="filter-btn px-4 py-1.5 rounded-full text-sm font-medium border bg-white text-gray-600 border-gray-200 hover:bg-gray-50 transition-colors"
+              >
+                Advisory
+              </button>
+              <button
+                onclick="filterAlerts('update')"
+                data-type="update"
+                class="filter-btn px-4 py-1.5 rounded-full text-sm font-medium border bg-white text-gray-600 border-gray-200 hover:bg-gray-50 transition-colors"
+              >
+                Update
+              </button>
+            </div>
           </div>
-          <div id="alertsList" class="divide-y max-h-[600px] overflow-y-auto">
+          <div id="alertsList" class="divide-y overflow-y-auto flex-1">
             {% if alerts %} {% for alert in alerts %}
             <div
-              class="p-6 hover:bg-gray-50 transition"
+              class="alert-card p-6 hover:bg-gray-50 transition"
               data-alert-id="{{ alert._id }}"
+              data-type="{{ alert.type | default('advisory') }}"
             >
               <div class="flex justify-between items-start mb-2">
                 <div class="flex items-center gap-2">
                   <span
-                    class="px-2 py-1 rounded text-xs font-bold uppercase {% if alert.severity == 'emergency' %}bg-red-100 text-red-700 {% elif alert.severity == 'important' %}bg-amber-100 text-amber-700 {% else %}bg-blue-100 text-blue-700{% endif %}"
+                    class="px-2 py-1 rounded text-xs font-bold uppercase {% if alert.type == 'emergency' %}bg-red-100 text-red-700 {% elif alert.type == 'crime' %}bg-orange-100 text-orange-700 {% elif alert.type == 'safety' %}bg-amber-100 text-amber-700 {% elif alert.type == 'advisory' %}bg-gray-100 text-gray-700 {% else %}bg-blue-100 text-blue-700{% endif %}"
                   >
-                    {{ alert.severity }}
+                    {% if alert.type == 'emergency' %}Emergency {% elif
+                    alert.type == 'crime' %}Crime Alert {% elif alert.type ==
+                    'safety' %}Safety Warning {% elif alert.type == 'advisory'
+                    %}Advisory {% else %}Update{% endif %}
                   </span>
                   <h4 class="font-bold text-gray-900">{{ alert.title }}</h4>
                 </div>
@@ -318,15 +406,18 @@
                 >
               </div>
             </div>
-            {% endfor %} {% else %}
-            <div class="p-12 text-center text-gray-500">
+            {% endfor %} {% endif %}
+            <div
+              id="emptyState"
+              class="p-12 text-center text-gray-500"
+              style="display: {% if alerts %}none{% else %}block{% endif %};"
+            >
               <i
                 data-lucide="info"
                 class="w-12 h-12 mx-auto mb-4 opacity-20"
               ></i>
               <p>No alerts have been broadcasted yet.</p>
             </div>
-            {% endif %}
           </div>
         </div>
       </div>

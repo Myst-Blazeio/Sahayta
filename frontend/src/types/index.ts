@@ -54,7 +54,8 @@ export interface CommunityAlert {
   _id: string;
   title: string;
   message: string;
-  severity: "emergency" | "important" | "info";
+  severity: "critical" | "high" | "medium" | "low";
+  type: "crime" | "safety" | "emergency" | "advisory" | "update";
   station_id: string;
   created_at: string;
   [key: string]: any;

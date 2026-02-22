@@ -229,9 +229,22 @@ def create_alert():
         return jsonify({'error': 'Unauthorized'}), 401
         
     data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Missing JSON paylaod'}), 400
+
+    type_val = data.get('type', 'advisory') # crime, safety, emergency, advisory, update
     title = data.get('title')
     message = data.get('message')
-    severity = data.get('severity', 'important') # emergency, important, info
+    
+    # Map 'type' to 'severity' for the frontend compatibility (citizen portal uses both)
+    intensity_map = {
+        'emergency': 'critical',
+        'crime': 'high',
+        'safety': 'medium', 
+        'advisory': 'low',
+        'update': 'low'
+    }
+    severity = data.get('severity') or intensity_map.get(type_val, 'low')
     
     if not title or not message:
         return jsonify({'error': 'Title and message are required'}), 400
@@ -241,11 +254,13 @@ def create_alert():
     new_alert = {
         '_id': alert_id,
         'title': title,
+        'type': type_val,
         'message': message,
         'severity': severity,
         'created_by': current_user_id,
         'station_id': user.get('station_id'),
-        'created_at': datetime.datetime.utcnow()
+        'created_at': datetime.datetime.utcnow(),
+        'is_active': True
     }
     
     db.community_alerts.insert_one(new_alert)

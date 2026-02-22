@@ -93,7 +93,7 @@ def not_found(e):
 if __name__ == '__main__':
     print("Starting Flask app...")
     try:
-        app.run(host='0.0.0.0', port=5000, debug=False)
+        app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
         print("Flask app finished.")
     except Exception as e:
         print(f"Flask failed to start: {e}")
