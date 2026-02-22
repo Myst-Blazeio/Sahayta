@@ -20,10 +20,10 @@ function App() {
           <Route path="/citizen/login" element={<CitizenLogin />} />
           <Route path="/citizen/signup" element={<CitizenSignup />} />
 
-          {/* Protected Routes */}
+          {/* Citizen Protected Routes */}
           <Route element={<ProtectedRoute allowedRoles={["citizen"]} />}>
             <Route
-              path="/dashboard/citizen/:username"
+              path="/dashboard/citizen"
               element={<CitizenPortal />}
             />
             <Route path="/citizen/profile" element={<CitizenProfile />} />

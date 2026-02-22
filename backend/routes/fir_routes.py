@@ -3,9 +3,12 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from db import get_db
 from datetime import datetime
-from deep_translator import GoogleTranslator
+# from deep_translator import GoogleTranslator
+from ml_service import ml_service
 import uuid
+# import pandas as pd
 from bson import ObjectId
+from werkzeug.security import generate_password_hash
 
 fir_bp = Blueprint('fir', __name__)
 
@@ -18,7 +21,7 @@ def submit_fir():
     
     data = request.json
     
-    original_text = data.get('text')
+    original_text = data.get('original_text')
     language = data.get('language', 'en')
     
     # New Fields
@@ -36,8 +39,14 @@ def submit_fir():
     translated_text = original_text
     if language != 'en':
         try:
-            # Note: GoogleTranslator might block if used too heavily.
-            translated_text = GoogleTranslator(source='auto', target='en').translate(original_text)
+            import requests
+            url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl={language}&tl=en&dt=t&q=" + requests.utils.quote(original_text)
+            response = requests.get(url, timeout=5)
+            if response.status_code == 200:
+                # The response is a nested array. The translations are in the first array.
+                translated_text = "".join([sentence[0] for sentence in response.json()[0]])
+            else:
+                print(f"Translation API returned status {response.status_code}")
         except Exception as e:
             print(f"Translation failed: {e}")
             pass
@@ -46,6 +55,14 @@ def submit_fir():
     fir_id = str(uuid.uuid4())
     current_time = datetime.utcnow()
     
+    # ML Prediction for BNS Sections
+    ai_suggestions = []
+    try:
+        if translated_text:
+            ai_suggestions = ml_service.predict_bns(translated_text, k=5)
+    except Exception as e:
+        print(f"ML Prediction failed in fir_routes: {e}")
+
     fir_entry = {
         '_id': fir_id,
         'user_id': user_id,
@@ -58,18 +75,67 @@ def submit_fir():
         'station_id': str(station_id) if station_id else None,
         'status': 'pending',
         'submission_date': current_time,
-        'last_updated': current_time
+        'last_updated': current_time,
+        'ai_suggestions': ai_suggestions
     }
     
     db = get_db()
     
     if role == 'police':
-        # Manual Entry by Police
+        # Manual Entry by Police - Fetch their current station ID dynamically
+        police_officer = db.police.find_one({'_id': ObjectId(user_id)})
+        police_station_id = None
+        if police_officer and police_officer.get('station_id'):
+            police_station_id = str(police_officer['station_id'])
+        else:
+            police_station_id = str(claims.get('station_id'))
+        
+        fir_entry['station_id'] = police_station_id
+        
+        # Complainant Onboarding / Linking
+        comp_username = data.get('complainant_username')
+        comp_password = data.get('complainant_password')
+        
+        citizen_user_id = None
+        
+        if comp_username:
+            try:
+                # Check if user already exists
+                existing_user = db.users.find_one({'username': comp_username})
+                if existing_user:
+                    citizen_user_id = str(existing_user['_id'])
+                    print(f"DEBUG: Linked manual FIR to existing citizen {comp_username}")
+                else:
+                    # Create new citizen user
+                    new_citizen = {
+                        'username': comp_username,
+                        'password_hash': generate_password_hash(comp_password) if comp_password else generate_password_hash('password123'),
+                        'full_name': data.get('complainant_name', 'Unknown'),
+                        'aadhar': data.get('complainant_aadhar', 'N/A'),
+                        'phone': data.get('complainant_phone', 'N/A'),
+                        'email': data.get('complainant_email', 'N/A'),
+                        'role': 'citizen',
+                        'created_at': datetime.utcnow()
+                    }
+                    result = db.users.insert_one(new_citizen)
+                    citizen_user_id = str(result.inserted_id)
+                    print(f"DEBUG: Created new citizen account {comp_username}. Object: {new_citizen}")
+            except Exception as e:
+                print(f"CRITICAL: Failed to create/link citizen account: {e}")
+                # We can choose to continue or abort. If we abort, the user knows registration failed.
+                return jsonify({'error': f'Citizen account creation failed: {str(e)}'}), 500
+        
+        # Associate FIR with the citizen (so they see it)
+        if citizen_user_id:
+            fir_entry['user_id'] = citizen_user_id
+        
         fir_entry['complainant_name'] = data.get('complainant_name', 'Unknown')
         fir_entry['complainant_phone'] = data.get('complainant_phone', 'N/A')
         fir_entry['complainant_aadhar'] = data.get('complainant_aadhar', 'N/A')
         fir_entry['complainant_email'] = data.get('complainant_email', 'N/A')
         fir_entry['source'] = 'police_manual'
+        fir_entry['received_by'] = str(user_id)
+        print(f"DEBUG: Manual FIR received by officer {user_id} for citizen {citizen_user_id}")
     else:
         # Citizen Entry - Fetch details
         user = db.users.find_one({'_id': ObjectId(user_id)})
@@ -78,8 +144,24 @@ def submit_fir():
         fir_entry['complainant_aadhar'] = user.get('aadhar', 'N/A') if user else 'N/A'
         fir_entry['complainant_email'] = user.get('email', 'N/A') if user else 'N/A'
         fir_entry['source'] = 'citizen_portal'
+        # Note: Citizen entries don't have a station_id yet, which is expected.
+        # They get assigned one later or it's handled by some other logic.
 
     db.firs.insert_one(fir_entry)
+    
+    # Notify user if it's a manual entry (citizen gets account/FIR info via notification if they exist)
+    if role == 'police' and citizen_user_id:
+        msg = f"A new FIR (#{fir_id[:8]}) has been filed on your behalf at Station {police_station_id}."
+        notification = {
+            '_id': str(uuid.uuid4()),
+            'user_id': citizen_user_id,
+            'message': msg,
+            'is_read': False,
+            'created_at': datetime.utcnow()
+        }
+        db.notifications.insert_one(notification)
+        print(f"DEBUG: Notification sent to citizen {citizen_user_id} for manual FIR.")
+
     return jsonify({'message': 'FIR submitted successfully', 'fir_id': fir_id}), 201
 
 @fir_bp.route('/', methods=['GET'])
@@ -213,6 +295,25 @@ def get_fir_details(fir_id):
         except Exception as e:
             print(f"Error fetching user details for FIR {fir_id}: {e}")
 
+    # Fetch resolving/rejecting officer details for the frontend modal
+    officer_id = fir.get('resolved_by') or fir.get('rejected_by')
+    if officer_id:
+        officer = None
+        # Try finding by ObjectId first
+        try:
+            officer = db.police.find_one({'_id': ObjectId(officer_id)})
+        except:
+            pass
+            
+        # Fallback to standard string match if not found by ObjectId
+        if not officer:
+            officer = db.police.find_one({'_id': officer_id})
+            
+        if officer:
+            fir['officer_name'] = officer.get('full_name', 'Unknown')
+            if officer.get('station_id'):
+                 fir['officer_station'] = officer.get('station_id')
+
     return jsonify(fir), 200
 
 @fir_bp.route('/<fir_id>/update', methods=['PUT'])
@@ -245,8 +346,32 @@ def update_fir(fir_id):
         if sections:
             update_data['applicable_sections'] = sections
             
-        if status == 'resolved':
+        if status in ['resolved', 'rejected']:
             # Move to archives
+            current_user_id = str(get_jwt_identity())
+            
+            # Fetch officer details to populate username and station_name in archives
+            officer = None
+            try:
+                officer = db.police.find_one({'_id': ObjectId(current_user_id)})
+            except:
+                pass
+            if not officer:
+                officer = db.police.find_one({'_id': current_user_id})
+                
+            if officer:
+                update_data['username'] = str(officer.get('username', 'Unknown'))
+                update_data['station_name'] = str(officer.get('station_id', 'Unknown'))
+            else:
+                update_data['username'] = 'Unknown'
+                update_data['station_name'] = 'Unknown'
+
+            if status == 'resolved':
+                update_data['resolved_by'] = current_user_id
+            else:
+                update_data['rejected_by'] = current_user_id
+                
+            print(f"DEBUG: FIR {fir_id} {status} by officer {current_user_id}")
             archived_fir = old_fir.copy()
             archived_fir.update(update_data)
             
@@ -257,7 +382,7 @@ def update_fir(fir_id):
             db.firs.delete_one({'_id': fir_id})
             
             # Notify user
-            msg = f"Your FIR ({fir_id[:8]}) has been marked as RESOLVED."
+            msg = f"Your FIR ({fir_id[:8]}) has been marked as {status.upper()}."
             notification = {
                 '_id': str(uuid.uuid4()),
                 'user_id': old_fir['user_id'],
@@ -267,10 +392,10 @@ def update_fir(fir_id):
             }
             db.notifications.insert_one(notification)
             
-            return jsonify({'message': 'FIR completed and archived'}), 200
+            return jsonify({'message': f'FIR {status} and archived'}), 200
             
         else:
-            # Normal update
+            # Normal update (e.g., in_progress)
             result = db.firs.update_one({'_id': fir_id}, {'$set': update_data})
             
             if result.matched_count:
@@ -305,15 +430,67 @@ def get_notifications():
         return jsonify(notifs), 200
     return jsonify([]), 500
 
-@fir_bp.route('/notifications/<notification_id>/read', methods=['PUT'])
+@fir_bp.route('/notifications/<notification_id>', methods=['DELETE'])
 @jwt_required()
-def mark_notification_read(notification_id):
+def delete_notification(notification_id):
     user_id = get_jwt_identity()
     db = get_db()
     if db is not None:
-        db.notifications.update_one(
-            {'_id': notification_id, 'user_id': user_id},
-            {'$set': {'is_read': True}}
+        db.notifications.delete_one({'_id': notification_id, 'user_id': user_id})
+        return jsonify({'message': 'Notification deleted'}), 200
+    return jsonify({'error': 'Database error'}), 500
+@fir_bp.route('/community-alerts', methods=['GET'])
+@jwt_required()
+def get_community_alerts():
+    user_id = str(get_jwt_identity())
+    db = get_db()
+    if db is not None:
+        # Fetch user (check both collections for robustness)
+        user = db.users.find_one({'_id': ObjectId(user_id)})
+        if not user:
+            user = db.police.find_one({'_id': ObjectId(user_id)})
+            
+        dismissed = []
+        if user and 'dismissed_alerts' in user:
+            dismissed = user['dismissed_alerts']
+            
+        # To handle both string and ObjectId in the $nin filter
+        query_ids = []
+        for d in dismissed:
+            query_ids.append(d)
+            try:
+                if len(d) == 24:
+                    query_ids.append(ObjectId(d))
+            except:
+                pass
+
+        # Fetch latest 10 community alerts not dismissed by user
+        alerts = list(db.community_alerts.find({'_id': {'$nin': query_ids}}).sort('created_at', -1).limit(10))
+        for alert in alerts:
+            alert['_id'] = str(alert['_id'])
+            if 'created_at' in alert:
+                alert['created_at'] = alert['created_at'].isoformat()
+        return jsonify(alerts), 200
+    return jsonify([]), 200
+
+@fir_bp.route('/community-alerts/<alert_id>/dismiss', methods=['PUT'])
+@jwt_required()
+def dismiss_community_alert(alert_id):
+    user_id = str(get_jwt_identity())
+    db = get_db()
+    print(f"DEBUG: Dismissing alert {alert_id} for user {user_id}")
+    if db is not None:
+        # Add to either users or police collection based on where user exists
+        result = db.users.update_one(
+            {'_id': ObjectId(user_id)},
+            {'$addToSet': {'dismissed_alerts': alert_id}}
         )
-        return jsonify({'message': 'Marked as read'}), 200
+        print(f"DEBUG: db.users update matched {result.matched_count} docs")
+        if result.matched_count == 0:
+            result_police = db.police.update_one(
+                {'_id': ObjectId(user_id)},
+                {'$addToSet': {'dismissed_alerts': alert_id}}
+            )
+            print(f"DEBUG: db.police update matched {result_police.matched_count} docs")
+        return jsonify({'message': 'Alert dismissed'}), 200
     return jsonify({'error': 'Database error'}), 500

@@ -24,10 +24,16 @@ def login():
 
     # Check in users collection first, then police
     user = db.users.find_one({'username': username})
-    if not user:
+    if user:
+        print(f"DEBUG: Found user {username} in 'users' collection. Hash: {user.get('password_hash')}")
+    else:
         user = db.police.find_one({'username': username})
+        if user:
+            print(f"DEBUG: Found user {username} in 'police' collection. Hash: {user.get('password_hash')}")
+        else:
+            print(f"DEBUG: User {username} not found in any collection.")
     
-    if user and check_password_hash(user['password_hash'], password):
+    if user and check_password_hash(user.get('password_hash', ''), password):
         # Determine role from user object or default
         role = user.get('role', 'citizen')
         
@@ -36,12 +42,23 @@ def login():
             claims['station_id'] = user.get('station_id')
         
         access_token = create_access_token(identity=str(user['_id']), additional_claims=claims, expires_delta=datetime.timedelta(days=1))
+        print(f"DEBUG: Login successful for {username}")
         return jsonify({
             'token': access_token, 
-            'role': role,
-            'username': user.get('username')
+            'user': {
+                '_id': str(user['_id']),
+                'username': user.get('username'),
+                'role': role,
+                'full_name': user.get('full_name'),
+                'email': user.get('email'),
+                'phone': user.get('phone'),
+                'station_id': user.get('station_id'),
+                'police_id': user.get('police_id'),
+                'aadhar': user.get('aadhar')
+            }
         }), 200
     
+    print(f"DEBUG: Login failed for {username}. Mismatch or no user.")
     return jsonify({'error': 'Invalid credentials'}), 401
 
 @auth_bp.route('/stations', methods=['GET'])
@@ -106,6 +123,8 @@ def register():
     elif role == 'police':
         police_id = data.get('police_id')
         station_id = data.get('station_id') 
+        phone = data.get('phone')
+        email = data.get('email')
         
         if not police_id:
             return jsonify({'error': 'Police ID is required for police personnel'}), 400
@@ -118,6 +137,8 @@ def register():
             
         new_user['police_id'] = str(police_id)
         new_user['station_id'] = str(station_id)
+        if phone: new_user['phone'] = phone
+        if email: new_user['email'] = email
         collection = db.police
     
     new_user['password_hash'] = generate_password_hash(password)

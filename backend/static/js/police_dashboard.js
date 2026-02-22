@@ -1,4 +1,5 @@
 let currentFirId = null;
+let currentSections = []; // Tracks chip-based BNS sections
 
 // Initialize
 document.addEventListener('DOMContentLoaded', function () {
@@ -21,6 +22,16 @@ document.addEventListener('DOMContentLoaded', function () {
     if (statusSelect) {
         statusSelect.addEventListener('change', filterTable);
     }
+
+    // Global listener for time inputs to auto-close native picker
+    // Only blurs when a complete value (hours and minutes) is present
+    const handleTimePicker = function (e) {
+        if (e.target && e.target.type === 'time' && e.target.value) {
+            e.target.blur();
+        }
+    };
+    document.addEventListener('input', handleTimePicker);
+    document.addEventListener('change', handleTimePicker);
 });
 
 function initChart(canvas) {
@@ -28,20 +39,40 @@ function initChart(canvas) {
 
     // Use injected data or defaults
     const labels = window.chartLabels || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-    const data = window.chartData || [0, 0, 0, 0, 0, 0];
+    const dataReported = window.chartDataReported || [0, 0, 0, 0, 0, 0];
+    const dataResolved = window.chartDataResolved || [0, 0, 0, 0, 0, 0];
+    const dataRejected = window.chartDataRejected || [0, 0, 0, 0, 0, 0];
 
     new Chart(ctx, {
         type: 'line',
         data: {
             labels: labels,
-            datasets: [{
-                label: 'Reported Crimes',
-                data: data,
-                borderColor: '#2563EB',
-                backgroundColor: 'rgba(37, 99, 235, 0.1)',
-                tension: 0.4,
-                fill: true
-            }]
+            datasets: [
+                {
+                    label: 'Total Reported',
+                    data: dataReported,
+                    borderColor: '#2563EB', // Blue
+                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                    tension: 0.4,
+                    fill: false
+                },
+                {
+                    label: 'Resolved',
+                    data: dataResolved,
+                    borderColor: '#10B981', // Green
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    tension: 0.4,
+                    fill: false
+                },
+                {
+                    label: 'Rejected',
+                    data: dataRejected,
+                    borderColor: '#EF4444', // Red
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    tension: 0.4,
+                    fill: false
+                }
+            ]
         },
         options: {
             responsive: true,
@@ -83,7 +114,9 @@ window.openReviewModal = async function (firId) {
     const aiContainer = document.getElementById('aiSuggestionsContainer');
     if (aiContainer) aiContainer.innerHTML = '<div class="text-center text-gray-400 py-4 text-sm" id="aiPlaceholder">Click \'AI Suggest\' to analyze the complaint.</div>';
 
-    document.getElementById('modalSections').value = '';
+    // Reset chips
+    currentSections = [];
+    renderSectionChips();
     document.getElementById('modalNotes').value = '';
 
     modal.classList.remove('hidden');
@@ -127,7 +160,25 @@ window.openReviewModal = async function (firId) {
         document.getElementById('modalTranslatedText').textContent = fir.translated_text || fir.original_text;
         document.getElementById('modalStatus').value = fir.status;
         document.getElementById('modalNotes').value = fir.police_notes || '';
-        document.getElementById('modalSections').value = (fir.applicable_sections || []).join(', ');
+        // Load existing sections as chips (inbox/dashboard)
+        currentSections = (fir.applicable_sections || []).filter(s => s);
+        renderSectionChips();
+        // If on archives page, render read-only BNS mini-cards instead
+        if (typeof renderArchiveBNSSections === 'function') {
+            renderArchiveBNSSections(currentSections);
+        }
+
+        // Handle Officer details (Archives)
+        const officerDetailsEl = document.getElementById('modalOfficerDetails');
+        if (officerDetailsEl) {
+            if (fir.username && fir.station_name) {
+                officerDetailsEl.textContent = `${fir.username} (Station: ${fir.station_name})`;
+            } else if (fir.officer_name) {
+                officerDetailsEl.textContent = `${fir.officer_name} (Station: ${fir.officer_station || 'Unknown'})`;
+            } else {
+                officerDetailsEl.textContent = 'Data unavailable';
+            }
+        }
 
     } catch (error) {
         console.error(error);
@@ -140,14 +191,70 @@ window.closeReviewModal = function () {
     currentFirId = null;
 };
 
-// BNS Modal
+// --- Section Chips ---
+
+window.renderSectionChips = function () {
+    const container = document.getElementById('sectionChipsContainer');
+    if (!container) return;
+    const placeholder = document.getElementById('sectionChipsPlaceholder');
+    container.innerHTML = '';
+
+    if (currentSections.length === 0) {
+        container.innerHTML = '<span id="sectionChipsPlaceholder" class="text-xs text-gray-400 italic">No sections added. Use AI Suggest below.</span>';
+        return;
+    }
+
+    currentSections.forEach((sec, idx) => {
+        const chip = document.createElement('span');
+        chip.className = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800';
+        chip.innerHTML = `${sec.replace(/_/g, ' ')}<button type="button" onclick="removeSectionChip(${idx})" class="ml-1 text-blue-500 hover:text-red-600 font-bold leading-none" title="Remove">&times;</button>`;
+        container.appendChild(chip);
+    });
+};
+
+window.removeSectionChip = function (idx) {
+    currentSections.splice(idx, 1);
+    renderSectionChips();
+};
+
+// BNS Modal — Tabbed (Original / Simplified)
 window.openBNSModal = function (sectionData) {
     const modal = document.getElementById('bnsDetailsModal');
     if (!modal) return;
-    document.getElementById('bnsModalTitle').textContent = sectionData.section || 'Unknown Section';
-    document.getElementById('bnsModalDescription').textContent = sectionData.description || 'No description available.';
-    document.getElementById('bnsModalOffence').textContent = sectionData.Offence || '-';
-    document.getElementById('bnsModalPunishment').textContent = sectionData.Punishment || '-';
+
+    // Normalize section name: replace underscores with spaces (BNS_273 → BNS 273)
+    const rawSection = sectionData.section || sectionData.Section || 'Unknown Section';
+    const sectionTitle = rawSection.replace(/_/g, ' ');
+    document.getElementById('bnsModalTitle').textContent = sectionTitle;
+
+    // Parse description into Original and Simplified parts.
+    // Handle both 'description' (lowercase) and 'Description' (capitalized from DataFrame)
+    // Format: "BNS_273 - <original text> - - - BNS 273 in Simple Words <simplified text>"
+    const rawDesc = sectionData.description || sectionData.Description || '';
+    const separator = '- - -';
+    const sepIdx = rawDesc.indexOf(separator);
+
+    let originalText = rawDesc;
+    let simplifiedText = '';
+
+    if (sepIdx !== -1) {
+        originalText = rawDesc.substring(0, sepIdx).trim();
+        simplifiedText = rawDesc.substring(sepIdx + separator.length).trim();
+        // Remove "BNS XXX in Simple Words" prefix from simplified
+        simplifiedText = simplifiedText.replace(/^BNS[\s_]\d+\s+in\s+Simple\s+Words\s*/i, '').trim();
+    }
+
+    // Remove leading "BNS_XXX -" or "BNS XXX -" prefix from original text
+    originalText = originalText.replace(/^BNS[\s_]\d+\s*-\s*/i, '').trim();
+
+    // Populate both tab panels
+    const origEl = document.getElementById('bnsOriginalText');
+    const simpEl = document.getElementById('bnsSimplifiedText');
+    if (origEl) origEl.textContent = originalText || 'No description available.';
+    if (simpEl) simpEl.textContent = simplifiedText || 'No simplified version available.';
+
+    // Reset to Original tab
+    switchBNSTab('original');
     modal.classList.remove('hidden');
 };
 
@@ -155,10 +262,53 @@ window.closeBNSModal = function () {
     document.getElementById('bnsDetailsModal').classList.add('hidden');
 };
 
+window.switchBNSTab = function (tab) {
+    const origBtn = document.getElementById('bnsTabOriginal');
+    const simpBtn = document.getElementById('bnsTabSimplified');
+    const origPanel = document.getElementById('bnsOriginalPanel');
+    const simpPanel = document.getElementById('bnsSimplifiedPanel');
+    if (!origBtn || !simpBtn || !origPanel || !simpPanel) return;
+
+    if (tab === 'original') {
+        origBtn.classList.add('bg-white', 'text-blue-700', 'shadow');
+        origBtn.classList.remove('text-gray-500');
+        simpBtn.classList.remove('bg-white', 'text-blue-700', 'shadow');
+        simpBtn.classList.add('text-gray-500');
+        origPanel.classList.remove('hidden');
+        simpPanel.classList.add('hidden');
+    } else {
+        simpBtn.classList.add('bg-white', 'text-blue-700', 'shadow');
+        simpBtn.classList.remove('text-gray-500');
+        origBtn.classList.remove('bg-white', 'text-blue-700', 'shadow');
+        origBtn.classList.add('text-gray-500');
+        simpPanel.classList.remove('hidden');
+        origPanel.classList.add('hidden');
+    }
+};
+
 // Profile Modal
-window.toggleProfileModal = function () {
+window.toggleProfileModal = async function () {
     const modal = document.getElementById('profileModal');
-    if (modal) modal.classList.toggle('hidden');
+    if (!modal) return;
+
+    const isHidden = modal.classList.contains('hidden');
+    if (isHidden) {
+        // Fetch Stats
+        try {
+            const response = await fetch('/police/stats');
+            if (response.ok) {
+                const stats = await response.json();
+                document.getElementById('profileEmail').textContent = stats.email || 'N/A';
+                document.getElementById('profilePhone').textContent = stats.phone || 'N/A';
+                document.getElementById('profileReceivedCount').textContent = stats.received_count;
+                document.getElementById('profileResolvedCount').textContent = stats.resolved_count;
+            }
+        } catch (error) {
+            console.error('Error fetching profile stats:', error);
+        }
+    }
+
+    modal.classList.toggle('hidden');
 };
 
 // New Report Modal
@@ -176,13 +326,16 @@ window.submitManualFIR = async function (event) {
         complainant_phone: form.complainant_phone.value,
         complainant_aadhar: form.complainant_aadhar.value,
         complainant_email: form.complainant_email.value,
-        text: form.details.value,
+        original_text: form.details.value,
         incident_date: form.incident_date.value,
         incident_time: form.incident_time.value,
         location: form.location.value,
-        station_id: form.station_id.value,
+        complainant_username: form.complainant_username.value,
+        complainant_password: form.complainant_password.value,
         language: 'en' // Defaulting to English for manual entry
     };
+
+    console.log('Submitting Manual FIR Data:', data);
 
     try {
         const response = await fetch('/api/fir/', {
@@ -197,11 +350,12 @@ window.submitManualFIR = async function (event) {
             location.reload();
         } else {
             const err = await response.json();
+            console.error('Submission Failed:', err);
             alert('Submission Failed: ' + (err.error || 'Unknown error'));
         }
     } catch (error) {
-        console.error(error);
-        alert('Error submitting FIR');
+        console.error('Error submitting FIR:', error);
+        alert('Error submitting FIR: ' + error.message);
     }
 };
 
@@ -269,12 +423,11 @@ window.suggestSections = async function () {
 };
 
 window.addSectionToInput = function (section) {
-    const input = document.getElementById('modalSections');
+    // Normalize: strip trailing description text, keep just the section id
     const specificSection = section.split('-')[0].trim();
-    let current = input.value.split(',').map(s => s.trim()).filter(s => s);
-    if (!current.includes(specificSection)) {
-        current.push(specificSection);
-        input.value = current.join(', ');
+    if (!currentSections.includes(specificSection)) {
+        currentSections.push(specificSection);
+        renderSectionChips();
     }
 };
 
@@ -282,7 +435,7 @@ window.updateFIR = async function () {
     if (!currentFirId) return;
     const status = document.getElementById('modalStatus').value;
     const notes = document.getElementById('modalNotes').value;
-    const sections = document.getElementById('modalSections').value.split(',').map(s => s.trim()).filter(s => s);
+    const sections = [...currentSections];
 
     try {
         const response = await fetch(`/api/fir/${currentFirId}/update`, {
@@ -313,12 +466,17 @@ window.updateFIR = async function () {
 window.filterTable = function () {
     const searchInput = document.getElementById('searchFirs');
     const statusSelect = document.getElementById('filterStatus');
-    if (!searchInput) return;
+    const stationSelect = document.getElementById('filterStation'); // New filter
 
-    const filterText = searchInput.value.toLowerCase();
+    // We might be on a page without search filters (e.g. Profile)
+    if (!searchInput && !statusSelect && !stationSelect) return;
+
+    const filterText = searchInput ? searchInput.value.toLowerCase() : '';
     const filterStatus = statusSelect ? statusSelect.value.toLowerCase() : '';
+    const filterStation = stationSelect ? stationSelect.value.toLowerCase() : '';
 
     const table = document.querySelector('table tbody');
+    if (!table) return;
     const rows = table.getElementsByTagName('tr');
 
     for (let i = 0; i < rows.length; i++) {
@@ -327,27 +485,43 @@ window.filterTable = function () {
 
         const firId = rows[i].cells[0].textContent.toLowerCase();
         const complainant = rows[i].cells[1].textContent.toLowerCase();
-        const statusSpan = rows[i].cells[3].getElementsByTagName('span')[0]; // Adjust index if needed (Dashboard vs Inbox)
-        // Dashboard: ID(0), Complainant(1), Date(2), Status(3), Action(4)
-        // Inbox: ID(0), Complainant(1), Date(2), Location(3), Status(4), Action(5)
 
-        // Dynamic Status column finding
+        // Determine columns. Archives has an extra Station column.
+        // Dashboard/Archives: ID(0), Complainant(1), Date(2)
+        // Archives Structure: Date(2), Station(3), Status(4)
+        // Inbox Structure: ID(0), Complainant(1), Date(2), Status(3) (or 4 depending on setup)
+
         let statusText = '';
+        let stationText = '';
+
+        // Search for status pill
+        let statusSpan = rows[i].querySelector('span.rounded-full');
         if (statusSpan) {
             statusText = statusSpan.textContent.trim().toLowerCase();
-        } else {
-            // Fallback for inbox where it might be index 4
-            const statusSpanInbox = rows[i].cells[4]?.getElementsByTagName('span')[0];
-            if (statusSpanInbox) statusText = statusSpanInbox.textContent.trim().toLowerCase();
+        }
+
+        // Search for station text (Archives specific)
+        let stationSpan = rows[i].querySelector('span.station-cell');
+        if (stationSpan) {
+            stationText = stationSpan.textContent.trim().toLowerCase();
         }
 
         const matchesText = firId.includes(filterText) || complainant.includes(filterText);
         const matchesStatus = filterStatus === '' || statusText === filterStatus;
+        const matchesStation = filterStation === '' || stationText === filterStation;
 
-        if (matchesText && matchesStatus) {
+        if (matchesText && matchesStatus && matchesStation) {
             rows[i].style.display = '';
         } else {
             rows[i].style.display = 'none';
         }
     }
 };
+
+// Ensure search input triggers filtering if defined directly in HTML without oninput
+document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById('searchFirs');
+    if (searchInput && !searchInput.oninput) {
+        searchInput.addEventListener('input', filterTable);
+    }
+});
