@@ -82,6 +82,43 @@ export const generateFIRPDF = (fir: FIR) => {
         });
     }
 
+    // Applied BNS Sections — only for resolved FIRs
+    if (fir.status === 'resolved' && fir.applicable_sections && fir.applicable_sections.length > 0) {
+        // Normalize section names: BNS_273 → BNS 273
+        const normalizedSections = fir.applicable_sections
+            .filter(s => s && s.trim())
+            .map(s => s.replace(/_/g, ' ').trim());
+
+        // Build two-column rows for a compact grid layout
+        const rows: string[][] = [];
+        for (let i = 0; i < normalizedSections.length; i += 2) {
+            rows.push([
+                normalizedSections[i],
+                normalizedSections[i + 1] || ''
+            ]);
+        }
+
+        autoTable(doc, {
+            startY: (doc as any).lastAutoTable.finalY + 12,
+            head: [["Applied BNS Sections (Bharatiya Nyaya Sanhita)", ""]],
+            body: rows,
+            theme: "grid",
+            headStyles: {
+                fillColor: [88, 44, 131],  // deep purple for BNS header
+                fontSize: 11,
+            },
+            bodyStyles: {
+                fontSize: 10,
+                fontStyle: 'bold',
+                textColor: [60, 20, 100],
+            },
+            columnStyles: {
+                0: { cellWidth: 85 },
+                1: { cellWidth: 85 },
+            },
+        });
+    }
+
     // Footer
     const pageCount = (doc as any).internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {

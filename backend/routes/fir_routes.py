@@ -430,17 +430,14 @@ def get_notifications():
         return jsonify(notifs), 200
     return jsonify([]), 500
 
-@fir_bp.route('/notifications/<notification_id>/read', methods=['PUT'])
+@fir_bp.route('/notifications/<notification_id>', methods=['DELETE'])
 @jwt_required()
-def mark_notification_read(notification_id):
+def delete_notification(notification_id):
     user_id = get_jwt_identity()
     db = get_db()
     if db is not None:
-        db.notifications.update_one(
-            {'_id': notification_id, 'user_id': user_id},
-            {'$set': {'is_read': True}}
-        )
-        return jsonify({'message': 'Marked as read'}), 200
+        db.notifications.delete_one({'_id': notification_id, 'user_id': user_id})
+        return jsonify({'message': 'Notification deleted'}), 200
     return jsonify({'error': 'Database error'}), 500
 @fir_bp.route('/community-alerts', methods=['GET'])
 @jwt_required()

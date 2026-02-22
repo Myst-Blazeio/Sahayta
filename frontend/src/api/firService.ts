@@ -37,8 +37,8 @@ export const firService = {
     return response.data;
   },
 
-  markNotificationRead: async (id: string) => {
-    const response = await client.put(`/fir/notifications/${id}/read`);
+  deleteNotification: async (id: string) => {
+    const response = await client.delete(`/fir/notifications/${id}`);
     return response.data;
   },
 

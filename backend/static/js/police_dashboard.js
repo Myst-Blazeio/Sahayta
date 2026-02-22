@@ -1,4 +1,5 @@
 let currentFirId = null;
+let currentSections = []; // Tracks chip-based BNS sections
 
 // Initialize
 document.addEventListener('DOMContentLoaded', function () {
@@ -113,7 +114,9 @@ window.openReviewModal = async function (firId) {
     const aiContainer = document.getElementById('aiSuggestionsContainer');
     if (aiContainer) aiContainer.innerHTML = '<div class="text-center text-gray-400 py-4 text-sm" id="aiPlaceholder">Click \'AI Suggest\' to analyze the complaint.</div>';
 
-    document.getElementById('modalSections').value = '';
+    // Reset chips
+    currentSections = [];
+    renderSectionChips();
     document.getElementById('modalNotes').value = '';
 
     modal.classList.remove('hidden');
@@ -157,7 +160,13 @@ window.openReviewModal = async function (firId) {
         document.getElementById('modalTranslatedText').textContent = fir.translated_text || fir.original_text;
         document.getElementById('modalStatus').value = fir.status;
         document.getElementById('modalNotes').value = fir.police_notes || '';
-        document.getElementById('modalSections').value = (fir.applicable_sections || []).join(', ');
+        // Load existing sections as chips (inbox/dashboard)
+        currentSections = (fir.applicable_sections || []).filter(s => s);
+        renderSectionChips();
+        // If on archives page, render read-only BNS mini-cards instead
+        if (typeof renderArchiveBNSSections === 'function') {
+            renderArchiveBNSSections(currentSections);
+        }
 
         // Handle Officer details (Archives)
         const officerDetailsEl = document.getElementById('modalOfficerDetails');
@@ -182,19 +191,99 @@ window.closeReviewModal = function () {
     currentFirId = null;
 };
 
-// BNS Modal
+// --- Section Chips ---
+
+window.renderSectionChips = function () {
+    const container = document.getElementById('sectionChipsContainer');
+    if (!container) return;
+    const placeholder = document.getElementById('sectionChipsPlaceholder');
+    container.innerHTML = '';
+
+    if (currentSections.length === 0) {
+        container.innerHTML = '<span id="sectionChipsPlaceholder" class="text-xs text-gray-400 italic">No sections added. Use AI Suggest below.</span>';
+        return;
+    }
+
+    currentSections.forEach((sec, idx) => {
+        const chip = document.createElement('span');
+        chip.className = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800';
+        chip.innerHTML = `${sec.replace(/_/g, ' ')}<button type="button" onclick="removeSectionChip(${idx})" class="ml-1 text-blue-500 hover:text-red-600 font-bold leading-none" title="Remove">&times;</button>`;
+        container.appendChild(chip);
+    });
+};
+
+window.removeSectionChip = function (idx) {
+    currentSections.splice(idx, 1);
+    renderSectionChips();
+};
+
+// BNS Modal — Tabbed (Original / Simplified)
 window.openBNSModal = function (sectionData) {
     const modal = document.getElementById('bnsDetailsModal');
     if (!modal) return;
-    document.getElementById('bnsModalTitle').textContent = sectionData.section || 'Unknown Section';
-    document.getElementById('bnsModalDescription').textContent = sectionData.description || 'No description available.';
-    document.getElementById('bnsModalOffence').textContent = sectionData.Offence || '-';
-    document.getElementById('bnsModalPunishment').textContent = sectionData.Punishment || '-';
+
+    // Normalize section name: replace underscores with spaces (BNS_273 → BNS 273)
+    const rawSection = sectionData.section || sectionData.Section || 'Unknown Section';
+    const sectionTitle = rawSection.replace(/_/g, ' ');
+    document.getElementById('bnsModalTitle').textContent = sectionTitle;
+
+    // Parse description into Original and Simplified parts.
+    // Handle both 'description' (lowercase) and 'Description' (capitalized from DataFrame)
+    // Format: "BNS_273 - <original text> - - - BNS 273 in Simple Words <simplified text>"
+    const rawDesc = sectionData.description || sectionData.Description || '';
+    const separator = '- - -';
+    const sepIdx = rawDesc.indexOf(separator);
+
+    let originalText = rawDesc;
+    let simplifiedText = '';
+
+    if (sepIdx !== -1) {
+        originalText = rawDesc.substring(0, sepIdx).trim();
+        simplifiedText = rawDesc.substring(sepIdx + separator.length).trim();
+        // Remove "BNS XXX in Simple Words" prefix from simplified
+        simplifiedText = simplifiedText.replace(/^BNS[\s_]\d+\s+in\s+Simple\s+Words\s*/i, '').trim();
+    }
+
+    // Remove leading "BNS_XXX -" or "BNS XXX -" prefix from original text
+    originalText = originalText.replace(/^BNS[\s_]\d+\s*-\s*/i, '').trim();
+
+    // Populate both tab panels
+    const origEl = document.getElementById('bnsOriginalText');
+    const simpEl = document.getElementById('bnsSimplifiedText');
+    if (origEl) origEl.textContent = originalText || 'No description available.';
+    if (simpEl) simpEl.textContent = simplifiedText || 'No simplified version available.';
+
+    // Reset to Original tab
+    switchBNSTab('original');
     modal.classList.remove('hidden');
 };
 
 window.closeBNSModal = function () {
     document.getElementById('bnsDetailsModal').classList.add('hidden');
+};
+
+window.switchBNSTab = function (tab) {
+    const origBtn = document.getElementById('bnsTabOriginal');
+    const simpBtn = document.getElementById('bnsTabSimplified');
+    const origPanel = document.getElementById('bnsOriginalPanel');
+    const simpPanel = document.getElementById('bnsSimplifiedPanel');
+    if (!origBtn || !simpBtn || !origPanel || !simpPanel) return;
+
+    if (tab === 'original') {
+        origBtn.classList.add('bg-white', 'text-blue-700', 'shadow');
+        origBtn.classList.remove('text-gray-500');
+        simpBtn.classList.remove('bg-white', 'text-blue-700', 'shadow');
+        simpBtn.classList.add('text-gray-500');
+        origPanel.classList.remove('hidden');
+        simpPanel.classList.add('hidden');
+    } else {
+        simpBtn.classList.add('bg-white', 'text-blue-700', 'shadow');
+        simpBtn.classList.remove('text-gray-500');
+        origBtn.classList.remove('bg-white', 'text-blue-700', 'shadow');
+        origBtn.classList.add('text-gray-500');
+        simpPanel.classList.remove('hidden');
+        origPanel.classList.add('hidden');
+    }
 };
 
 // Profile Modal
@@ -334,12 +423,11 @@ window.suggestSections = async function () {
 };
 
 window.addSectionToInput = function (section) {
-    const input = document.getElementById('modalSections');
+    // Normalize: strip trailing description text, keep just the section id
     const specificSection = section.split('-')[0].trim();
-    let current = input.value.split(',').map(s => s.trim()).filter(s => s);
-    if (!current.includes(specificSection)) {
-        current.push(specificSection);
-        input.value = current.join(', ');
+    if (!currentSections.includes(specificSection)) {
+        currentSections.push(specificSection);
+        renderSectionChips();
     }
 };
 
@@ -347,7 +435,7 @@ window.updateFIR = async function () {
     if (!currentFirId) return;
     const status = document.getElementById('modalStatus').value;
     const notes = document.getElementById('modalNotes').value;
-    const sections = document.getElementById('modalSections').value.split(',').map(s => s.trim()).filter(s => s);
+    const sections = [...currentSections];
 
     try {
         const response = await fetch(`/api/fir/${currentFirId}/update`, {
