@@ -7,6 +7,8 @@ export interface User {
   aadhar?: string;
   role: "citizen" | "police" | "admin";
   station_id?: string;
+  police_id?: string; // Added from schema
+  created_at?: string; // Added from schema
   [key: string]: any;
 }
 
@@ -21,12 +23,15 @@ export interface FIR {
   _id: string;
   user_id: string;
   station_id: string;
-  status: "pending" | "accepted" | "rejected" | "resolved";
+  status: "pending" | "accepted" | "rejected" | "resolved" | "in_progress";
   original_text: string;
+  translated_text?: string; // Added from schema
+  language?: string; // Added from schema
   incident_date: string;
   incident_time: string;
   location: string;
   submission_date: string;
+  last_updated?: string; // Added from schema
   complainant_name?: string;
   complainant_phone?: string;
   complainant_email?: string;
@@ -41,6 +46,17 @@ export interface Notification {
   user_id: string;
   message: string;
   is_read: boolean;
+  created_at: string;
+  [key: string]: any;
+}
+
+export interface CommunityAlert {
+  _id: string;
+  title: string;
+  message: string;
+  severity: "critical" | "high" | "medium" | "low";
+  type: "crime" | "safety" | "emergency" | "advisory" | "update";
+  station_id: string;
   created_at: string;
   [key: string]: any;
 }

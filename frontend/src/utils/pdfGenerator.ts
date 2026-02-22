@@ -8,7 +8,7 @@ export const generateFIRPDF = (fir: FIR) => {
     // Header
     doc.setFontSize(22);
     doc.setTextColor(41, 128, 185);
-    doc.text("FIR Report", 105, 20, { align: "center" });
+    doc.text("FIR Progress Report", 105, 20, { align: "center" });
 
     doc.setFontSize(12);
     doc.setTextColor(100);
@@ -64,7 +64,7 @@ export const generateFIRPDF = (fir: FIR) => {
     autoTable(doc, {
         startY: (doc as any).lastAutoTable.finalY + 10,
         head: [["Incident Description"]],
-        body: [[fir.original_text]],
+        body: [[fir.translated_text || fir.original_text]],
         theme: "grid",
         headStyles: { fillColor: [41, 128, 185] },
         styles: { cellWidth: 'auto', overflow: 'linebreak' }, // Ensure wrapping
@@ -74,11 +74,48 @@ export const generateFIRPDF = (fir: FIR) => {
     if (fir.police_notes) {
         autoTable(doc, {
             startY: (doc as any).lastAutoTable.finalY + 10,
-            head: [["Police Notes"]],
+            head: [["Action Taken (Police Notes)"]],
             body: [[fir.police_notes]],
             theme: "grid",
             headStyles: { fillColor: [41, 128, 185] },
             styles: { cellWidth: 'auto', overflow: 'linebreak' },
+        });
+    }
+
+    // Applied BNS Sections — only for resolved FIRs
+    if (fir.status === 'resolved' && fir.applicable_sections && fir.applicable_sections.length > 0) {
+        // Normalize section names: BNS_273 → BNS 273
+        const normalizedSections = fir.applicable_sections
+            .filter(s => s && s.trim())
+            .map(s => s.replace(/_/g, ' ').trim());
+
+        // Build two-column rows for a compact grid layout
+        const rows: string[][] = [];
+        for (let i = 0; i < normalizedSections.length; i += 2) {
+            rows.push([
+                normalizedSections[i],
+                normalizedSections[i + 1] || ''
+            ]);
+        }
+
+        autoTable(doc, {
+            startY: (doc as any).lastAutoTable.finalY + 12,
+            head: [["Applied BNS Sections (Bharatiya Nyaya Sanhita)", ""]],
+            body: rows,
+            theme: "grid",
+            headStyles: {
+                fillColor: [88, 44, 131],  // deep purple for BNS header
+                fontSize: 11,
+            },
+            bodyStyles: {
+                fontSize: 10,
+                fontStyle: 'bold',
+                textColor: [60, 20, 100],
+            },
+            columnStyles: {
+                0: { cellWidth: 85 },
+                1: { cellWidth: 85 },
+            },
         });
     }
 

@@ -1,11 +1,15 @@
 
+print("MLService: importing os/pickle...")
 import os
 import pickle
+print("MLService: importing numpy...")
 import numpy as np
+print("MLService: importing pandas...")
 import pandas as pd
-from sentence_transformers import SentenceTransformer
-import faiss
+# from sentence_transformers import SentenceTransformer
+# import faiss
 
+print("MLService: importing config...")
 from config import Config
 
 class MLService:
@@ -29,6 +33,11 @@ class MLService:
         self._load_models()
         
     def _load_models(self):
+        from sentence_transformers import SentenceTransformer
+        import faiss
+        import numpy as np
+        import pandas as pd
+
         print("Loading ML Models...")
         
         # Load Crime Model

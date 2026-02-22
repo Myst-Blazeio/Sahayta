@@ -18,9 +18,14 @@ echo.
 
 :: Launch a parallel process that waits for port 5000 then opens the browser
 :: Checks every 2 seconds, times out after 60 seconds
-start "" /B powershell -Command "$i=0; while (!(Test-NetConnection localhost -Port 5000 -WarningAction SilentlyContinue).TcpTestSucceeded) { Start-Sleep -Seconds 2; $i++; if ($i -gt 30) { break } }; if ($i -le 30) { Start-Process 'http://localhost:5000/police/login' }"
+start "" /B powershell -Command "$i=0; while (!(Test-NetConnection localhost -Port 5000 -WarningAction SilentlyContinue).TcpTestSucceeded) { Start-Sleep -Seconds 2; $i++; if ($i -gt 30) { break } }; if ($i -le 30) { Start-Process 'http://localhost:5000/' }"
 
 :: Run the server in the foreground so logs are visible
 python app.py
 
+if %errorlevel% neq 0 (
+    echo.
+    echo Backend server crashed with error code %errorlevel%.
+    pause
+)
 pause
