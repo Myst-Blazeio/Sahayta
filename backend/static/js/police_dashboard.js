@@ -162,7 +162,9 @@ window.openReviewModal = async function (firId) {
         // Handle Officer details (Archives)
         const officerDetailsEl = document.getElementById('modalOfficerDetails');
         if (officerDetailsEl) {
-            if (fir.officer_name) {
+            if (fir.username && fir.station_name) {
+                officerDetailsEl.textContent = `${fir.username} (Station: ${fir.station_name})`;
+            } else if (fir.officer_name) {
                 officerDetailsEl.textContent = `${fir.officer_name} (Station: ${fir.officer_station || 'Unknown'})`;
             } else {
                 officerDetailsEl.textContent = 'Data unavailable';

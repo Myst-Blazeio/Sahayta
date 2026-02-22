@@ -349,6 +349,23 @@ def update_fir(fir_id):
         if status in ['resolved', 'rejected']:
             # Move to archives
             current_user_id = str(get_jwt_identity())
+            
+            # Fetch officer details to populate username and station_name in archives
+            officer = None
+            try:
+                officer = db.police.find_one({'_id': ObjectId(current_user_id)})
+            except:
+                pass
+            if not officer:
+                officer = db.police.find_one({'_id': current_user_id})
+                
+            if officer:
+                update_data['username'] = str(officer.get('username', 'Unknown'))
+                update_data['station_name'] = str(officer.get('station_id', 'Unknown'))
+            else:
+                update_data['username'] = 'Unknown'
+                update_data['station_name'] = 'Unknown'
+
             if status == 'resolved':
                 update_data['resolved_by'] = current_user_id
             else:
