@@ -1,6 +1,6 @@
-
-# Use an official Python runtime as a parent image
-FROM python:3.14-slim
+# Use Python 3.11 slim — stable LTS-like release with full wheel support for
+# sentence-transformers, faiss-cpu, scikit-learn, numpy, pandas etc.
+FROM python:3.11-slim
 
 # Set the working directory in the container
 WORKDIR /app
