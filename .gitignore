@@ -1,6 +1,68 @@
-# Ignore everything
+# ============================================================
+# Backend Branch – Gitignore
+# Only essential backend source files are tracked.
+# ============================================================
+
+# ── Ignore everything by default ────────────────────────────
 *
 
-# Allow exceptions
-!backend/
+# ── Always keep this file ───────────────────────────────────
 !.gitignore
+
+# ── Allow the backend folder itself ─────────────────────────
+!backend/
+!backend/**
+
+# ── SECRET / ENVIRONMENT FILES (never commit) ───────────────
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# ── Python virtual environments ─────────────────────────────
+backend/final_venv/
+backend/venv/
+backend/.venv/
+backend/env/
+
+# ── Python cache & compiled files ───────────────────────────
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.pyc
+backend/**/*.pyc
+backend/*.pyo
+backend/**/*.pyo
+
+# ── Log & output files ──────────────────────────────────────
+backend/*.log
+backend/*.txt
+backend/verify_output*.txt
+backend/indexes_output*.txt
+
+# ── Database dumps / data exports ───────────────────────────
+backend/*_dump.json
+backend/data/
+
+# ── Debug / diagnostic / one-off scripts ────────────────────
+backend/check_indexes.py
+backend/check_routes.py
+backend/diagnose_alerts.py
+backend/test_db_connection.py
+backend/test_endpoints.py
+backend/update_schema.py
+backend/verify_fir_refactor.py
+backend/verify_onboarding.py
+
+# ── Scripts folder (internal dev utilities) ─────────────────
+backend/scripts/
+
+# ── OS / editor artifacts ───────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/
+*.swp
+*.swo
+
+# ── Frontend & Firebase (not for this branch) ───────────────
+frontend/
+.firebaserc
+firebase.json
