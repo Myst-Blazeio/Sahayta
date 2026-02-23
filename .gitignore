@@ -13,6 +13,7 @@
 !backend/
 !backend/**
 
+
 # ── SECRET / ENVIRONMENT FILES (never commit) ───────────────
 backend/.env
 backend/.env.*
@@ -35,6 +36,8 @@ backend/**/*.pyo
 # ── Log & output files ──────────────────────────────────────
 backend/*.log
 backend/*.txt
+!backend/runtime.txt
+!backend/requirements.txt
 backend/verify_output*.txt
 backend/indexes_output*.txt
 
