@@ -1,8 +1,0 @@
-backend/routes/police_routes.py
-backend/templates/base.html
-backend/templates/police/alerts.html
-backend/templates/police/analytics.html
-backend/templates/police/archives.html
-backend/templates/police/dashboard.html
-backend/templates/police/inbox.html
-frontend/src/pages/CitizenPortal.tsx
