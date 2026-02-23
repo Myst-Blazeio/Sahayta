@@ -1,8 +1,12 @@
 import axios from 'axios';
 
+// In production (Firebase hosting), VITE_API_BASE_URL = Render backend URL.
+// In development, it is empty so Vite's dev proxy forwards /api/* to localhost:5000.
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
+
 // Create an Axios instance with default configuration
 const client = axios.create({
-  baseURL: '/api', // Proxy in vite.config.ts will handle this to http://localhost:5000
+  baseURL: `${API_BASE_URL}/api`,
   headers: {
     'Content-Type': 'application/json',
   },

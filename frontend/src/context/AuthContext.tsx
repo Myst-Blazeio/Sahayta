@@ -30,7 +30,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setRole(storedRole);
         try {
           // Fetch fresh user data
-          const response = await fetch("/api/auth/me", {
+          const apiBase = import.meta.env.VITE_API_BASE_URL ?? '';
+          const response = await fetch(`${apiBase}/api/auth/me`, {
             headers: { Authorization: `Bearer ${storedToken}` },
           });
           if (response.ok) {
