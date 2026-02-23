@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}FIR Automation - Police Portal{% endblock %}</title>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="{{ url_for('static', filename='favicon.svg') }}"
+    />
+    <!-- Tailwind CSS (CDN for simplicity in Flask) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: "#2563EB", // Blue-600
+              secondary: "#475569", // Slate-600
+            },
+          },
+        },
+      };
+    </script>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+  </head>
+
+  <body class="bg-gray-50 min-h-screen text-gray-900 font-sans">
+    {% block content %}{% endblock %} {% if user %}
+    <!-- Global Profile Modal -->
+    <div
+      id="profileModal"
+      class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+    >
+      <div
+        class="relative top-20 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white"
+      >
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xl font-bold text-gray-900">Officer Profile</h3>
+          <button
+            onclick="toggleProfileModal()"
+            class="text-gray-400 hover:text-gray-500"
+          >
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div class="space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700"
+                >Full Name</label
+              >
+              <p
+                id="profileFullName"
+                class="mt-1 text-sm text-gray-900 font-semibold"
+              >
+                {{ user.full_name }}
+              </p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700"
+                >Station ID</label
+              >
+              <p id="profileStationID" class="mt-1 text-sm text-gray-900">
+                {{ user.station_id }}
+              </p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 border-t pt-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700"
+                >Email (Gmail)</label
+              >
+              <p id="profileEmail" class="mt-1 text-sm text-gray-900">
+                Loading...
+              </p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700"
+                >Phone</label
+              >
+              <p id="profilePhone" class="mt-1 text-sm text-gray-900">
+                Loading...
+              </p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 border-t pt-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700"
+                >FIRs Handled</label
+              >
+              <p id="profileReceivedCount" class="mt-1 text-sm text-gray-900">
+                -
+              </p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700"
+                >FIRs Resolved</label
+              >
+              <p id="profileResolvedCount" class="mt-1 text-sm text-gray-900">
+                -
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700"
+              >Username</label
+            >
+            <p id="profileUsername" class="mt-1 text-sm text-gray-500">
+              {{ user.username }}
+            </p>
+          </div>
+          <div class="flex justify-end pt-4 border-t">
+            <button
+              onclick="toggleProfileModal()"
+              class="bg-gray-100 text-gray-700 px-4 py-2 rounded hover:bg-gray-200 text-sm font-medium"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+      // Initialize Lucide icons
+      lucide.createIcons();
+    </script>
+    {% block scripts %}{% endblock %}
+  </body>
+</html>
