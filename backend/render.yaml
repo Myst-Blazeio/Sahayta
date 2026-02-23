@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: fir-automation-backend
+    env: python
+    region: singapore # closest to India — change if needed
+    plan: free
+    rootDir: backend # relative to repo root
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --config gunicorn.conf.py app:app
+    healthCheckPath: /api/health
+
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: SECRET_KEY
+        generateValue: true # Render auto-generates a secure random value
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: MONGO_URI
+        sync: false # Set this manually in Render dashboard (secret)
+      - key: RENDER_URL
+        sync: false # Set to https://<your-app-name>.onrender.com
+      - key: LOG_LEVEL
+        value: info
+      - key: WEB_CONCURRENCY
+        value: 2

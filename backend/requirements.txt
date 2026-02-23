@@ -10,3 +10,4 @@ faiss-cpu
 scikit-learn
 deep-translator
 requests
+gunicorn

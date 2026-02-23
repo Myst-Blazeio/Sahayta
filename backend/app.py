@@ -3,6 +3,8 @@ import sys
 sys.stdout.reconfigure(line_buffering=True)
 print("APP.PY STARTING...")
 
+from keep_alive import start_keep_alive
+
 
 print("Importing flask...")
 from flask import Flask, request, jsonify, redirect, url_for
@@ -67,8 +69,11 @@ app.register_blueprint(police_views, url_prefix='/police')
 
 # JWT Config for Cookies
 app.config['JWT_TOKEN_LOCATION'] = ['headers', 'cookies']
-app.config['JWT_COOKIE_SECURE'] = False 
-app.config['JWT_COOKIE_CSRF_PROTECT'] = False 
+app.config['JWT_COOKIE_SECURE'] = (env == 'production')  # HTTPS only in prod
+app.config['JWT_COOKIE_CSRF_PROTECT'] = False
+
+# Start keep-alive thread (pings /api/health every 5 min on Render free plan)
+start_keep_alive()
 
 @app.route('/', methods=['GET'])
 def index():
