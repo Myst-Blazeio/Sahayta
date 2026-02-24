@@ -1,46 +1,57 @@
 
-print("MLService: importing os/pickle...")
 import os
 import pickle
-print("MLService: importing numpy...")
 import numpy as np
-print("MLService: importing pandas...")
 import pandas as pd
-# from sentence_transformers import SentenceTransformer
-# import faiss
 
-print("MLService: importing config...")
 from config import Config
 
+
 class MLService:
+    """
+    Singleton ML service with LAZY model loading.
+
+    Models are NOT loaded at import / startup time — they are loaded on the
+    first call to predict_crime() or predict_bns().  This keeps the Render
+    free-tier instance well inside its 512 MB RAM limit during boot.
+    """
+
     _instance = None
-    
+
+    # ── Singleton ─────────────────────────────────────────────────────────────
     def __new__(cls):
         if cls._instance is None:
-            cls._instance = super(MLService, cls).__new__(cls)
-            cls._instance.initialized = False
+            cls._instance = super().__new__(cls)
+            cls._instance._ready = False   # models not yet loaded
         return cls._instance
-    
+
     def __init__(self):
-        if self.initialized:
+        # __init__ is called every time MLService() is invoked, guard with flag
+        pass
+
+    # ── Public property ───────────────────────────────────────────────────────
+    @property
+    def initialized(self):
+        """Returns True once _load_models() has been called (even if some
+        models failed to load — we don't want health-checks to block)."""
+        return self._ready
+
+    # ── Lazy loader ───────────────────────────────────────────────────────────
+    def _ensure_loaded(self):
+        """Called before any prediction; loads models exactly once."""
+        if self._ready:
             return
-        self.initialized = True
+        self._ready = True          # set first so re-entrant calls skip this
         self.crime_model = None
         self.bns_df = None
         self.bns_index = None
-        self.bns_model = None # SentenceTransformer model for encoding queries
-        self.use_mock = False
+        self.bns_model = None
         self._load_models()
-        
-    def _load_models(self):
-        from sentence_transformers import SentenceTransformer
-        import faiss
-        import numpy as np
-        import pandas as pd
 
-        print("Loading ML Models...")
-        
-        # Load Crime Model
+    def _load_models(self):
+        print("MLService: lazy-loading models on first request...")
+
+        # ── Crime Model ───────────────────────────────────────────────────────
         try:
             if os.path.exists(Config.CRIME_MODEL_PATH):
                 with open(Config.CRIME_MODEL_PATH, 'rb') as f:
@@ -48,91 +59,78 @@ class MLService:
                 print("Crime model loaded successfully.")
             else:
                 print(f"Warning: Crime model not found at {Config.CRIME_MODEL_PATH}")
-                self.use_mock = True # Or just for that specific feature
         except Exception as e:
             print(f"Error loading crime model: {e}")
-            self.use_mock = True
 
-        # Load BNS Assets
+        # ── BNS Assets ────────────────────────────────────────────────────────
         try:
             if os.path.exists(Config.BNS_ASSETS_PATH):
+                # These imports are heavy — delayed until needed
+                from sentence_transformers import SentenceTransformer
+                import faiss
+
                 with open(Config.BNS_ASSETS_PATH, 'rb') as f:
                     assets = pickle.load(f)
-                    self.bns_df = assets['df']
-                    embeddings = assets['embeddings']
-                    
-                    # Build FAISS index
-                    dimension = embeddings.shape[1]
-                    self.bns_index = faiss.IndexFlatL2(dimension)
-                    self.bns_index.add(embeddings.astype(np.float32))
-                    
-                    # Load SentenceTransformer for query encoding
-                    # We load it here to avoid reloading if possible, but for query we need it.
-                    # Ideally we should save the model too or use a singleton for it.
-                    # Since it's large, we'll load it.
-                    print("Loading Sentence-BERT for query encoding...")
-                    self.bns_model = SentenceTransformer('all-MiniLM-L6-v2') 
-                    print("BNS system loaded successfully.")
+
+                self.bns_df = assets['df']
+                embeddings = assets['embeddings'].astype(np.float32)
+
+                dimension = embeddings.shape[1]
+                self.bns_index = faiss.IndexFlatL2(dimension)
+                self.bns_index.add(embeddings)
+
+                print("Loading Sentence-BERT for query encoding...")
+                self.bns_model = SentenceTransformer('all-MiniLM-L6-v2')
+                print("BNS system loaded successfully.")
             else:
                 print(f"Warning: BNS assets not found at {Config.BNS_ASSETS_PATH}")
         except Exception as e:
             print(f"Error loading BNS assets: {e}")
 
+    # ── Predictions ───────────────────────────────────────────────────────────
     def predict_crime(self, ward, year, month):
-        if self.crime_model:
-            try:
-                # Expecting input as DataFrame with correct columns
-                input_data = pd.DataFrame([[ward, year, month]], columns=['Ward', 'Year', 'Month'])
-                prediction = self.crime_model.predict(input_data)[0]
-                return round(prediction)
-            except Exception as e:
-                print(f"Prediction error: {e}")
-                return None
-        return None
+        self._ensure_loaded()
+        if self.crime_model is None:
+            return None
+        try:
+            input_data = pd.DataFrame(
+                [[ward, year, month]], columns=['Ward', 'Year', 'Month']
+            )
+            return round(self.crime_model.predict(input_data)[0])
+        except Exception as e:
+            print(f"Prediction error: {e}")
+            return None
 
     def predict_bns(self, query, k=5):
-        if self.bns_index and self.bns_model and self.bns_df is not None:
-            try:
-                # Gibberish detection disabled per user request
-                # if len(query) > 10: ...
+        self._ensure_loaded()
+        if not (self.bns_index and self.bns_model and self.bns_df is not None):
+            return []
+        try:
+            query_vec = self.bns_model.encode([query]).astype(np.float32)
+            distances, indices = self.bns_index.search(query_vec, k)
 
-                query_vec = self.bns_model.encode([query]).astype(np.float32)
-                distances, indices = self.bns_index.search(query_vec, k)
-                
-                results = []
-                for i, idx in enumerate(indices[0]):
-                    if idx < len(self.bns_df):
-                        item = self.bns_df.iloc[idx]
-                        # Convert to dict and handle NaN
-                        item_dict = item.to_dict()
-                        # Clean up NaN values for JSON
-                        clean_dict = {k: (v if pd.notna(v) else None) for k, v in item_dict.items()}
-                        
-                        result = clean_dict
-                        
-                        # Convert L2 distance to Similarity Score (0 to 1)
-                        # valid range for L2 is 0 to infinity. 
-                        # 1 / (1 + distance) maps 0->1, inf->0. 
-                        # This avoids negative percentages.
-                        dist = float(distances[0][i])
-                        similarity = 1 / (1 + dist)
-                        
-                        result['distance'] = dist
-                        result['similarity'] = similarity
-                        result['rank'] = i + 1
-                        
-                        # Ensure core fields exist for frontend
-                        if 'section' not in result and 'Section' in result:
-                            result['section'] = result['Section']
-                        if 'description' not in result and 'Description' in result:
-                            result['description'] = result['Description']
-                            
-                        results.append(result)
-                return results
-            except Exception as e:
-                print(f"BNS Prediction error: {e}")
-                return []
-        return []
+            results = []
+            for i, idx in enumerate(indices[0]):
+                if idx < len(self.bns_df):
+                    item_dict = self.bns_df.iloc[idx].to_dict()
+                    clean = {k: (v if pd.notna(v) else None) for k, v in item_dict.items()}
 
-# Singleton instance
+                    dist = float(distances[0][i])
+                    clean['distance'] = dist
+                    clean['similarity'] = 1 / (1 + dist)
+                    clean['rank'] = i + 1
+
+                    if 'section' not in clean and 'Section' in clean:
+                        clean['section'] = clean['Section']
+                    if 'description' not in clean and 'Description' in clean:
+                        clean['description'] = clean['Description']
+
+                    results.append(clean)
+            return results
+        except Exception as e:
+            print(f"BNS Prediction error: {e}")
+            return []
+
+
+# Module-level singleton — no model loading happens here
 ml_service = MLService()
