@@ -5,6 +5,7 @@ import path from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: '/Final-Year-Project/',
   plugins: [react()],
   resolve: {
     alias: {
