@@ -13,6 +13,9 @@ from datetime import timedelta
 print("Importing dotenv...")
 from dotenv import load_dotenv
 import os
+import threading
+import time
+import requests
 
 print("Importing custom modules...")
 from config import config
@@ -89,6 +92,28 @@ def not_found(e):
     if request.path.startswith('/api/'):
         return jsonify({'error': 'Not found'}), 404
     return "Page not found", 404
+
+KEEP_ALIVE_INTERVAL = 30  # seconds
+
+def keep_alive():
+    url = os.getenv("KEEP_ALIVE_URL")
+    if not url:
+        return  # silently skip
+
+    while True:
+        try:
+            requests.get(url, timeout=5)
+            print("🔄 Keep-alive ping sent", flush=True)
+        except Exception as e:
+            print("⚠️ Keep-alive failed:", e, flush=True)
+        time.sleep(KEEP_ALIVE_INTERVAL)
+
+def start_keep_alive():
+    thread = threading.Thread(target=keep_alive, daemon=True)
+    thread.start()
+
+# Start the keep-alive thread
+start_keep_alive()
 
 if __name__ == '__main__':
     print("Starting Flask app...")
