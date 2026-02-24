@@ -5,8 +5,6 @@ flask-pymongo
 flask-jwt-extended
 numpy
 pandas
-sentence-transformers
-faiss-cpu
 scikit-learn
 deep-translator
 requests

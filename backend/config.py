@@ -11,6 +11,7 @@ class Config:
     ASSETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'assets')
     CRIME_MODEL_PATH = os.path.join(ASSETS_DIR, 'crime_model.pkl')
     BNS_ASSETS_PATH = os.path.join(ASSETS_DIR, 'bns_assets.pkl')
+    BNS_TFIDF_PATH = os.path.join(ASSETS_DIR, 'bns_tfidf.pkl')
     
 class DevelopmentConfig(Config):
     DEBUG = True
