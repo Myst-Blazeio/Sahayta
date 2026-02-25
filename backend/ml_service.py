@@ -1,116 +1,192 @@
+"""
+ml_service.py
+-------------
+Lightweight ML service using:
+  - scikit-learn TF-IDF + cosine similarity  (BNS section search)
+  - scikit-learn pickled model               (crime prediction)
+
+No torch / sentence-transformers / faiss — safe for Render 512 MB.
+Models are LAZY-LOADED on first request to keep startup RAM minimal.
+"""
 
 import os
 import pickle
 import numpy as np
 import pandas as pd
-from sentence_transformers import SentenceTransformer
-import faiss
 
 from config import Config
 
+
 class MLService:
+    """Singleton with lazy model loading."""
+
     _instance = None
-    
+
     def __new__(cls):
         if cls._instance is None:
-            cls._instance = super(MLService, cls).__new__(cls)
-            cls._instance.initialized = False
+            cls._instance = super().__new__(cls)
+            cls._instance._ready = False
         return cls._instance
-    
+
     def __init__(self):
-        if self.initialized:
+        pass  # guard handled by _ready flag
+
+    # ── Public ────────────────────────────────────────────────────────────────
+
+    @property
+    def initialized(self):
+        return self._ready
+
+    # ── Internal ──────────────────────────────────────────────────────────────
+
+    def _ensure_loaded(self):
+        """Load models exactly once, on first prediction call."""
+        if self._ready:
             return
-        self.initialized = True
-        self.crime_model = None
-        self.bns_df = None
-        self.bns_index = None
-        self.bns_model = None # SentenceTransformer model for encoding queries
-        self.use_mock = False
+        self._ready = True          # set early to prevent re-entrant calls
+        self.crime_model  = None
+        self.bns_vectorizer = None
+        self.bns_matrix   = None
+        self.bns_df       = None
+        self.bns_text_col = None
         self._load_models()
-        
+
     def _load_models(self):
-        print("Loading ML Models...")
-        
-        # Load Crime Model
+        print("MLService: loading models (first request) ...")
+
+        # ── Crime prediction model ────────────────────────────────────────────
         try:
-            if os.path.exists(Config.CRIME_MODEL_PATH):
-                with open(Config.CRIME_MODEL_PATH, 'rb') as f:
+            path = Config.CRIME_MODEL_PATH
+            if os.path.exists(path):
+                with open(path, 'rb') as f:
                     self.crime_model = pickle.load(f)
-                print("Crime model loaded successfully.")
+                print("Crime model loaded.")
             else:
-                print(f"Warning: Crime model not found at {Config.CRIME_MODEL_PATH}")
-                self.use_mock = True # Or just for that specific feature
+                print(f"Warning: crime model not found at {path}")
         except Exception as e:
             print(f"Error loading crime model: {e}")
-            self.use_mock = True
 
-        # Load BNS Assets
+        # ── BNS TF-IDF index ─────────────────────────────────────────────────
         try:
-            if os.path.exists(Config.BNS_ASSETS_PATH):
-                with open(Config.BNS_ASSETS_PATH, 'rb') as f:
-                    assets = pickle.load(f)
-                    self.bns_df = assets['df']
-                    embeddings = assets['embeddings']
-                    
-                    # Build FAISS index
-                    dimension = embeddings.shape[1]
-                    self.bns_index = faiss.IndexFlatL2(dimension)
-                    self.bns_index.add(embeddings.astype(np.float32))
-                    
-                    # Load SentenceTransformer for query encoding
-                    # We load it here to avoid reloading if possible, but for query we need it.
-                    # Ideally we should save the model too or use a singleton for it.
-                    # Since it's large, we'll load it.
-                    print("Loading Sentence-BERT for query encoding...")
-                    self.bns_model = SentenceTransformer('all-MiniLM-L6-v2') 
-                    print("BNS system loaded successfully.")
+            tfidf_path = Config.BNS_TFIDF_PATH
+            legacy_path = Config.BNS_ASSETS_PATH
+
+            if os.path.exists(tfidf_path):
+                # Preferred: pre-built lightweight index
+                with open(tfidf_path, 'rb') as f:
+                    payload = pickle.load(f)
+                self.bns_vectorizer = payload['vectorizer']
+                self.bns_matrix     = payload['matrix']
+                self.bns_df         = payload['df']
+                self.bns_text_col   = payload.get('text_col', 'description')
+                print(f"BNS TF-IDF index loaded ({self.bns_matrix.shape[0]} entries).")
+
+            elif os.path.exists(legacy_path):
+                # Fallback: build TF-IDF on-the-fly from the old assets
+                print("bns_tfidf.pkl not found — building TF-IDF from bns_assets.pkl ...")
+                self._build_tfidf_from_legacy(legacy_path)
             else:
-                print(f"Warning: BNS assets not found at {Config.BNS_ASSETS_PATH}")
+                print("Warning: no BNS assets found.")
         except Exception as e:
             print(f"Error loading BNS assets: {e}")
 
+    def _build_tfidf_from_legacy(self, legacy_path: str):
+        """Build TF-IDF index at runtime from bns_assets.pkl (fallback)."""
+        from sklearn.feature_extraction.text import TfidfVectorizer
+
+        with open(legacy_path, 'rb') as f:
+            assets = pickle.load(f)
+
+        df = assets['df']
+
+        # Auto-detect text column
+        text_col = None
+        for candidate in ['description', 'Description', 'offense', 'Offense',
+                          'section_title', 'title', 'Title', 'text']:
+            if candidate in df.columns:
+                text_col = candidate
+                break
+        if text_col is None:
+            str_cols = [c for c in df.columns if df[c].dtype == object]
+            df['_combined_text'] = df[str_cols].fillna('').agg(' '.join, axis=1)
+            text_col = '_combined_text'
+
+        corpus = df[text_col].fillna('').astype(str).tolist()
+        vectorizer = TfidfVectorizer(ngram_range=(1, 2), max_features=20_000,
+                                     sublinear_tf=True, strip_accents='unicode',
+                                     min_df=1)
+        matrix = vectorizer.fit_transform(corpus)
+
+        self.bns_vectorizer = vectorizer
+        self.bns_matrix     = matrix
+        self.bns_df         = df
+        self.bns_text_col   = text_col
+        print(f"BNS TF-IDF built on-the-fly ({matrix.shape[0]} entries).")
+
+    # ── Predictions ───────────────────────────────────────────────────────────
+
     def predict_crime(self, ward, year, month):
-        if self.crime_model:
-            try:
-                # Expecting input as DataFrame with correct columns
-                input_data = pd.DataFrame([[ward, year, month]], columns=['Ward', 'Year', 'Month'])
-                prediction = self.crime_model.predict(input_data)[0]
-                return round(prediction)
-            except Exception as e:
-                print(f"Prediction error: {e}")
-                return None
-        return None
+        self._ensure_loaded()
+        if self.crime_model is None:
+            return None
+        try:
+            input_df = pd.DataFrame([[ward, year, month]],
+                                    columns=['Ward', 'Year', 'Month'])
+            return round(self.crime_model.predict(input_df)[0])
+        except Exception as e:
+            print(f"Crime prediction error: {e}")
+            return None
 
-    def predict_bns(self, query, k=5):
-        if self.bns_index and self.bns_model and self.bns_df is not None:
-            try:
-                query_vec = self.bns_model.encode([query]).astype(np.float32)
-                distances, indices = self.bns_index.search(query_vec, k)
-                
-                results = []
-                for i, idx in enumerate(indices[0]):
-                    if idx < len(self.bns_df):
-                        item = self.bns_df.iloc[idx]
-                        # Convert to dict and handle NaN
-                        item_dict = item.to_dict()
-                        # Clean up NaN values for JSON
-                        clean_dict = {k: (v if pd.notna(v) else None) for k, v in item_dict.items()}
-                        
-                        result = clean_dict
-                        result['distance'] = float(distances[0][i])
-                        result['rank'] = i + 1
-                        # Ensure core fields exist for frontend
-                        if 'section' not in result and 'Section' in result:
-                            result['section'] = result['Section']
-                        if 'description' not in result and 'Description' in result:
-                            result['description'] = result['Description']
-                            
-                        results.append(result)
-                return results
-            except Exception as e:
-                print(f"BNS Prediction error: {e}")
-                return []
-        return []
+    def predict_bns(self, query: str, k: int = 5):
+        self._ensure_loaded()
+        if self.bns_vectorizer is None or self.bns_matrix is None or self.bns_df is None:
+            return []
+        try:
+            from sklearn.metrics.pairwise import cosine_similarity
 
-# Singleton instance
+            query_vec = self.bns_vectorizer.transform([query])
+            scores    = cosine_similarity(query_vec, self.bns_matrix).flatten()
+            top_k     = int(min(k, len(scores)))
+            top_idx   = scores.argsort()[-top_k:][::-1]  # highest first
+
+            results = []
+            for rank, idx in enumerate(top_idx, start=1):
+                item_dict = self.bns_df.iloc[idx].to_dict()
+                clean = {key: (val if pd.notna(val) else None)
+                         for key, val in item_dict.items()}
+
+                similarity = float(scores[idx])
+                clean['similarity'] = similarity
+                clean['distance']   = 1.0 - similarity   # kept for API compat
+                clean['rank']       = rank
+
+                # Normalise field names for the frontend
+                if 'section' not in clean and 'Section' in clean:
+                    clean['section'] = clean['Section']
+                if 'description' not in clean and 'Description' in clean:
+                    clean['description'] = clean['Description']
+
+                results.append(clean)
+
+            # ── Normalize scores for display ──────────────────────────────
+            # Raw TF-IDF cosine is naturally low (0.05–0.15).
+            # Remap so top result ≈ 90% and others scale proportionally,
+            # with a floor of 40% for any result that made the top-k list.
+            if results:
+                top_sim = results[0]['similarity']   # already sorted highest→first
+                for r in results:
+                    if top_sim > 0:
+                        normalized = 0.40 + (r['similarity'] / top_sim) * 0.50
+                    else:
+                        normalized = 0.40
+                    r['similarity'] = round(min(1.0, normalized), 4)
+                    r['distance']   = round(1.0 - r['similarity'], 4)
+
+            return results
+        except Exception as e:
+            print(f"BNS prediction error: {e}")
+            return []
+
+
+# Module-level singleton — NO heavy imports happen here
 ml_service = MLService()

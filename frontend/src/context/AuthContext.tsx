@@ -30,7 +30,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setRole(storedRole);
         try {
           // Fetch fresh user data
-          const response = await fetch("/api/auth/me", {
+          const apiBase = import.meta.env.VITE_API_BASE_URL ?? '';
+          const response = await fetch(`${apiBase}/api/auth/me`, {
             headers: { Authorization: `Bearer ${storedToken}` },
           });
           if (response.ok) {
@@ -39,12 +40,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             // Update session storage with fresh data
             sessionStorage.setItem("user", JSON.stringify(userData));
           } else {
-            // Token invalid or expired
-            logout();
+            // Token invalid or expired — fall back to stored user
+            const storedUser = sessionStorage.getItem("user");
+            if (storedUser) {
+              setUser(JSON.parse(storedUser));
+            } else {
+              logout();
+            }
           }
         } catch (error) {
-          console.error("Auth init failed", error);
-          // Fallback to stored user if fetch fails (e.g. offline)
+          console.error("Auth init failed (backend unavailable)", error);
+          // Fallback to stored user if fetch fails (e.g. no backend)
           const storedUser = sessionStorage.getItem("user");
           if (storedUser) setUser(JSON.parse(storedUser));
         }
@@ -75,7 +81,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Redirect to Flask backend for police logout or stays here for citizen?
     // Actually, police logout is now handled by backend routes, but if we are here, we might need to redirect.
     // For now, simple client side clear is fine.
-    
+
     navigate("/");
   };
 

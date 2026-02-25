@@ -1,92 +1,11 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, make_response, jsonify, send_from_directory
-import os
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, set_access_cookies, unset_jwt_cookies
-from werkzeug.security import check_password_hash, generate_password_hash
+from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from werkzeug.security import generate_password_hash
 from db import get_db
 import datetime
 from bson import ObjectId
 
 police_bp = Blueprint('police', __name__)
-
-@police_bp.route('/')
-def index():
-    # If user is already logged in, redirect to dashboard
-    # (Optional, but good UX)
-    # verify_jwt_in_request(optional=True)
-    # if get_jwt_identity():
-    #     return redirect(url_for('police.dashboard'))
-    return render_template('police/index.html')
-
-@police_bp.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        
-        db = get_db()
-        user = db.police.find_one({'username': username})
-        
-        if user and check_password_hash(user['password_hash'], password):
-            access_token = create_access_token(identity=str(user['_id']), additional_claims={"role": "police", "station_id": user.get('station_id')})
-            resp = make_response(redirect(url_for('police.dashboard')))
-            set_access_cookies(resp, access_token)
-            return resp
-        else:
-            flash('Invalid credentials or not a police account', 'error')
-            
-    return render_template('police/login.html')
-
-@police_bp.route('/signup', methods=['GET', 'POST'])
-def signup():
-    if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        confirm_password = request.form.get('confirm_password')
-        full_name = request.form.get('full_name')
-        police_id = request.form.get('police_id')
-        station_id = request.form.get('station_id')
-        phone = request.form.get('phone')
-        email = request.form.get('email')
-        
-        if password != confirm_password:
-             flash('Passwords do not match', 'error')
-             return redirect(url_for('police.signup'))
-        
-        db = get_db()
-        
-        if db.police.find_one({'username': username}):
-            flash('Username already exists', 'error')
-            return redirect(url_for('police.signup'))
-            
-        if db.police.find_one({'police_id': police_id}):
-             flash('Police ID already registered', 'error')
-             return redirect(url_for('police.signup'))
-
-        # Check phone/email if needed, for now just inserting
-        
-        new_user = {
-            'username': username,
-            'full_name': full_name,
-            'role': 'police',
-            'police_id': str(police_id),
-            'station_id': str(station_id),
-            'phone': phone,
-            'email': email,
-            'password_hash': generate_password_hash(password),
-            'created_at': datetime.datetime.utcnow()
-        }
-        
-        db.police.insert_one(new_user)
-        flash('Registration successful! Please login.', 'success')
-        return redirect(url_for('police.login'))
-
-    return render_template('police/signup.html')
-
-@police_bp.route('/logout')
-def logout():
-    resp = make_response(redirect(url_for('police.login')))
-    unset_jwt_cookies(resp)
-    return resp
 
 @police_bp.route('/dashboard')
 @jwt_required()
@@ -96,21 +15,38 @@ def dashboard():
     user = db.police.find_one({'_id': ObjectId(current_user_id)})
     
     if not user:
-        return redirect(url_for('police.login'))
+        return jsonify({'error': 'User not found'}), 404
         
     # Fetch Stats
     # Total Pending FIRs for this station
     pending_firs_count = db.firs.count_documents({'station_id': user.get('station_id'), 'status': 'pending'})
     
-    # Recent FIRs
-    recent_firs = list(db.firs.find({'station_id': user.get('station_id')}).sort('submission_date', -1).limit(5))
+    # Recent FIRs (ONLY PENDING for dashboard as requested)
+    recent_firs_cursor = db.firs.find({'station_id': user.get('station_id'), 'status': 'pending'}).sort('submission_date', -1).limit(5)
+    recent_firs = []
+    for fir in recent_firs_cursor:
+        fir['_id'] = str(fir['_id'])
+        recent_firs.append(fir)
     
-    # Chart Data: Group by Month (Last 6 Months)
+    # Chart Data: Group by Month (Last 6 Months) from both active and archived FIRs
     pipeline = [
         {
             '$match': {
                 'station_id': user.get('station_id'),
                 'submission_date': {'$gte': datetime.datetime.utcnow() - datetime.timedelta(days=180)}
+            }
+        },
+        {
+            '$unionWith': {
+                'coll': 'archives',
+                'pipeline': [
+                    {
+                        '$match': {
+                            'station_id': user.get('station_id'),
+                            'submission_date': {'$gte': datetime.datetime.utcnow() - datetime.timedelta(days=180)}
+                        }
+                    }
+                ]
             }
         },
         {
@@ -140,12 +76,12 @@ def dashboard():
         chart_labels.append(months[m_idx-1])
         chart_data.append(stats_map.get(m_idx, 0))
         
-    return render_template('police/dashboard.html', 
-                           user=user, 
-                           pending_count=pending_firs_count, 
-                           firs=recent_firs,
-                           chart_labels=chart_labels,
-                           chart_data=chart_data)
+    return jsonify({
+        'pending_count': pending_firs_count,
+        'recent_firs': recent_firs,
+        'chart_labels': chart_labels,
+        'chart_data': chart_data
+    }), 200
 
 @police_bp.route('/inbox')
 @jwt_required()
@@ -155,12 +91,20 @@ def inbox():
     user = db.police.find_one({'_id': ObjectId(current_user_id)})
     
     if not user:
-        return redirect(url_for('police.login'))
+        return jsonify({'error': 'User not found'}), 404
         
-    # Fetch all FIRs for station, sorted by newest
-    firs = list(db.firs.find({'station_id': user.get('station_id')}).sort('submission_date', -1))
+    # Fetch only active FIRs for station (Pending & In Progress)
+    firs_cursor = db.firs.find({
+        'station_id': user.get('station_id'),
+        'status': {'$in': ['pending', 'in_progress']}
+    }).sort('submission_date', -1)
     
-    return render_template('police/inbox.html', user=user, firs=firs)
+    firs = []
+    for fir in firs_cursor:
+        fir['_id'] = str(fir['_id'])
+        firs.append(fir)
+    
+    return jsonify(firs), 200
 
 @police_bp.route('/archives')
 @jwt_required()
@@ -170,14 +114,17 @@ def archives():
     user = db.police.find_one({'_id': ObjectId(current_user_id)})
     
     if not user:
-        return redirect(url_for('police.login'))
+        return jsonify({'error': 'User not found'}), 404
         
-    # Fetch archived FIRs (Assuming they are in 'archives' collection or 'firs' with specific status)
-    # Based on fir_routes.py, resolved/rejected FIRs might be moved to 'archives' collection.
-    # Let's check 'archives' collection first.
-    archived_firs = list(db.archives.find({'station_id': user.get('station_id')}).sort('submission_date', -1))
+    # Fetch archived FIRs
+    archived_firs_cursor = db.archives.find({'station_id': user.get('station_id')}).sort('submission_date', -1)
     
-    return render_template('police/archives.html', user=user, firs=archived_firs)
+    archived_firs = []
+    for fir in archived_firs_cursor:
+        fir['_id'] = str(fir['_id'])
+        archived_firs.append(fir)
+    
+    return jsonify(archived_firs), 200
 
 @police_bp.route('/analytics')
 @jwt_required()
@@ -187,17 +134,15 @@ def analytics():
     user = db.police.find_one({'_id': ObjectId(current_user_id)})
     
     if not user:
-        return redirect(url_for('police.login'))
+        return jsonify({'error': 'User not found'}), 404
         
     # Real Analytics Data
     total_firs = db.firs.count_documents({'station_id': user.get('station_id')})
-    # Count from archives as well for total history
     archived_count = db.archives.count_documents({'station_id': user.get('station_id')})
     
     resolved_firs = db.archives.count_documents({'station_id': user.get('station_id'), 'status': 'resolved'})
     pending_firs = db.firs.count_documents({'station_id': user.get('station_id'), 'status': 'pending'})
-    rejected_firs = db.archives.count_documents({'station_id': user.get('station_id'), 'status': 'rejected'}) # Assuming rejected also archived
-    # If rejected are kept in firs, add check there too.
+    rejected_firs = db.archives.count_documents({'station_id': user.get('station_id'), 'status': 'rejected'})
     rejected_active = db.firs.count_documents({'station_id': user.get('station_id'), 'status': 'rejected'})
     
     stats = {
@@ -207,18 +152,7 @@ def analytics():
         'rejected': rejected_firs + rejected_active
     }
     
-    
-    return render_template('police/analytics.html', user=user, stats=stats)
-
-@police_bp.route('/analytics/map')
-@jwt_required()
-def crime_map():
-    # Helper to get absolute path to scripts/output
-    # Assuming app.py is in backend/ and this file is in backend/routes/
-    # backend/routes/../scripts/output -> backend/scripts/output
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    output_dir = os.path.join(current_dir, '..', 'scripts', 'output')
-    return send_from_directory(output_dir, 'kolkata_crime_risk_map.html')
+    return jsonify(stats), 200
 
 @police_bp.route('/profile', methods=['GET', 'POST'])
 @jwt_required()
@@ -228,23 +162,154 @@ def profile():
     user = db.police.find_one({'_id': ObjectId(current_user_id)})
     
     if not user:
-        return redirect(url_for('police.login'))
+        return jsonify({'error': 'User not found'}), 404
         
     if request.method == 'POST':
-        full_name = request.form.get('full_name')
-        phone = request.form.get('phone')
-        email = request.form.get('email')
-        
-        # station_id usually verified/set by admin, but allowing name edit for now
+        data = request.get_json()
+        full_name = data.get('full_name')
         
         update_data = {
-            'full_name': full_name,
-            'phone': phone,
-            'email': email
+            'full_name': full_name
         }
         
         db.police.update_one({'_id': ObjectId(current_user_id)}, {'$set': update_data})
-        flash('Profile updated successfully', 'success')
-        return redirect(url_for('police.profile'))
+        return jsonify({'message': 'Profile updated successfully'}), 200
         
-    return render_template('police/profile.html', user=user)
+    user['_id'] = str(user['_id'])
+    user.pop('password_hash', None)
+    return jsonify(user), 200
+
+@police_bp.route('/stats', methods=['GET'])
+@jwt_required()
+def get_officer_stats():
+    current_user_id = str(get_jwt_identity())
+    db = get_db()
+    user = db.police.find_one({'_id': ObjectId(current_user_id)})
+    
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+        
+    received_count = db.firs.count_documents({'received_by': current_user_id})
+    archived_received = db.archives.count_documents({'received_by': current_user_id})
+    resolved_count = db.archives.count_documents({'resolved_by': current_user_id})
+    
+    return jsonify({
+        'full_name': user.get('full_name'),
+        'email': user.get('email', 'N/A'),
+        'phone': user.get('phone', 'N/A'),
+        'received_count': received_count + archived_received,
+        'resolved_count': resolved_count
+    })
+
+
+@police_bp.route('/alerts', methods=['GET'])
+@jwt_required()
+def alerts():
+    current_user_id = str(get_jwt_identity())
+    db = get_db()
+    user = db.police.find_one({'_id': ObjectId(current_user_id)})
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+        
+    # Fetch all sent alerts
+    all_alerts = list(db.community_alerts.find().sort('created_at', -1))
+    for alert in all_alerts:
+        alert['_id'] = str(alert['_id'])
+    
+    return jsonify(all_alerts), 200
+
+@police_bp.route('/alerts', methods=['POST'])
+@jwt_required()
+def create_alert():
+    current_user_id = str(get_jwt_identity())
+    db = get_db()
+    user = db.police.find_one({'_id': ObjectId(current_user_id)})
+    
+    if not user:
+        return jsonify({'error': 'Unauthorized'}), 401
+        
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Missing JSON paylaod'}), 400
+
+    type_val = data.get('type', 'advisory') # crime, safety, emergency, advisory, update
+    title = data.get('title')
+    message = data.get('message')
+    
+    # Map 'type' to 'severity' for the frontend compatibility (citizen portal uses both)
+    intensity_map = {
+        'emergency': 'critical',
+        'crime': 'high',
+        'safety': 'medium', 
+        'advisory': 'low',
+        'update': 'low'
+    }
+    severity = data.get('severity') or intensity_map.get(type_val, 'low')
+    
+    if not title or not message:
+        return jsonify({'error': 'Title and message are required'}), 400
+        
+    import uuid
+    alert_id = str(uuid.uuid4())
+    new_alert = {
+        '_id': alert_id,
+        'title': title,
+        'type': type_val,
+        'message': message,
+        'severity': severity,
+        'created_by': current_user_id,
+        'station_id': user.get('station_id'),
+        'created_at': datetime.datetime.utcnow(),
+        'is_active': True
+    }
+    
+    db.community_alerts.insert_one(new_alert)
+    
+    # Send a notification to EVERY registered citizen
+    citizens = db.users.find({'role': 'citizen'})
+    notifications = []
+    for citizen in citizens:
+        notifications.append({
+            '_id': str(uuid.uuid4()),
+            'user_id': str(citizen['_id']),
+            'message': f"EMERGENCY ALERT: {title} - {message}",
+            'is_read': False,
+            'type': 'community_alert',
+            'alert_id': alert_id,
+            'created_at': datetime.datetime.utcnow()
+        })
+    
+    if notifications:
+        db.notifications.insert_many(notifications)
+    
+    print(f"DEBUG: Community Alert '{title}' broadcasted to all citizens.")
+    
+    return jsonify({'message': 'Alert broadcasted successfully', 'alert': new_alert}), 201
+
+@police_bp.route('/alerts/<alert_id>', methods=['DELETE'])
+@jwt_required()
+def delete_alert(alert_id):
+    current_user_id = str(get_jwt_identity())
+    db = get_db()
+    
+    # Check if user exists and is authorized (police)
+    user = db.police.find_one({'_id': ObjectId(current_user_id)})
+    if not user:
+        return jsonify({'error': 'Unauthorized'}), 401
+        
+    # Delete the alert (handle both string and ObjectId)
+    query = {'_id': alert_id}
+    try:
+        if len(alert_id) == 24:
+            query = {'$or': [{'_id': alert_id}, {'_id': ObjectId(alert_id)}]}
+    except:
+        pass
+
+    result = db.community_alerts.delete_one(query)
+    
+    if result.deleted_count:
+        # Also delete related notifications for this alert
+        db.notifications.delete_many({'alert_id': alert_id})
+        return jsonify({'message': 'Alert and related notifications deleted successfully'}), 200
+    else:
+        return jsonify({'error': 'Alert not found'}), 404

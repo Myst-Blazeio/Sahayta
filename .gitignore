@@ -62,7 +62,11 @@ Thumbs.db
 
 # Project Specific
 backend/verify_output.txt
+backend/output*.txt
+backend/test_output*.txt
 backend/celerybeat-schedule
+data/
+db_data/
 
 # Documentation and Research
 docs/
@@ -71,3 +75,10 @@ research/
 test_output.txt
 .firebaserc
 firebase.json
+
+# IDE
+.idea/
+.project
+.settings/
+*.sublime-project
+*.sublime-workspace

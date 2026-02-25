@@ -11,28 +11,28 @@ endblock %} {% block content %}
     </div>
     <nav class="flex-1 p-4 space-y-2">
       <a
-        href="{{ url_for('police.dashboard') }}"
+        href="{{ url_for('police_views.dashboard', username=user.username, stationid=user.station_id) }}"
         class="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
       >
         <i data-lucide="layout-dashboard"></i>
         <span class="font-medium">Dashboard</span>
       </a>
       <a
-        href="{{ url_for('police.inbox') }}"
+        href="{{ url_for('police_views.inbox', username=user.username, stationid=user.station_id) }}"
         class="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
       >
         <i data-lucide="file-text"></i>
         <span class="font-medium">FIR Inbox</span>
       </a>
       <a
-        href="{{ url_for('police.analytics') }}"
+        href="{{ url_for('police_views.analytics', username=user.username, stationid=user.station_id) }}"
         class="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
       >
         <i data-lucide="bar-chart-2"></i>
         <span class="font-medium">Analytics</span>
       </a>
       <a
-        href="{{ url_for('police.archives') }}"
+        href="{{ url_for('police_views.archives', username=user.username, stationid=user.station_id) }}"
         class="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
       >
         <i data-lucide="archive"></i>
@@ -40,21 +40,22 @@ endblock %} {% block content %}
       </a>
     </nav>
     <div class="p-4 border-t">
-      <div class="flex items-center gap-3 mb-4">
+      <div
+        class="flex items-center gap-3 mb-4 cursor-pointer hover:bg-gray-50 p-2 rounded"
+        onclick="toggleProfileModal()"
+      >
         <div
           class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600"
         >
           <i data-lucide="user"></i>
         </div>
         <div>
-          <a href="{{ url_for('police.profile') }}" class="hover:underline">
-            <p class="text-sm font-bold text-gray-900">{{ user.full_name }}</p>
-            <p class="text-xs text-gray-500">Officer</p>
-          </a>
+          <p class="text-sm font-bold text-gray-900">{{ user.full_name }}</p>
+          <p class="text-xs text-gray-500">Officer</p>
         </div>
       </div>
       <a
-        href="{{ url_for('police.logout') }}"
+        href="{{ url_for('police_views.logout') }}"
         class="flex items-center gap-2 text-red-600 hover:text-red-700 text-sm font-medium"
       >
         <i data-lucide="log-out" size="16"></i> Sign Out

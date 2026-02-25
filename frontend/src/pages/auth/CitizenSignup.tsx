@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
-import axios from "axios";
+import { authService } from "../../api/authService";
 
 const CitizenSignup = () => {
   const [formData, setFormData] = useState({
@@ -31,19 +31,17 @@ const CitizenSignup = () => {
     }
 
     try {
-      await axios.post("/api/auth/register", {
-        username: formData.username,
-        password: formData.password,
-        full_name: formData.full_name,
-        email: formData.email,
-        phone: formData.phone,
-        aadhar: formData.aadhar,
+      const { confirmPassword, ...signupData } = formData;
+      await authService.register({
+        ...signupData,
         role: "citizen",
       });
 
       navigate("/citizen/login");
     } catch (err: any) {
-      setError(err.response?.data?.error || "Registration failed");
+      console.error("Signup Error:", err);
+      const errorMessage = err.response?.data?.error || "Registration failed";
+      setError(errorMessage);
     }
   };
 

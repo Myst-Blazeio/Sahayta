@@ -1,0 +1,33 @@
+[
+  {
+    "_id": "ed2985a3-2b6d-4297-88d9-05f60d5c0030",
+    "user_id": "69977b8cc3241f9f5362e571",
+    "original_text": "\u098f\u0995 \u09ac\u09cd\u09af\u0995\u09cd\u09a4\u09bf\u0995\u09c7 \u09a8\u09c3\u09b6\u0982\u09b8\u09ad\u09be\u09ac\u09c7 \u09b9\u09a4\u09cd\u09af\u09be \u0995\u09b0\u09be \u09b9\u09af\u09bc\u09c7\u099b\u09c7",
+    "translated_text": "A man was brutally murdered",
+    "language": "bn",
+    "incident_date": "2026-02-13",
+    "incident_time": "05:07",
+    "location": "India",
+    "station_id": "100",
+    "status": "resolved",
+    "submission_date": {
+      "$date": "2026-02-20T23:29:32.110Z"
+    },
+    "last_updated": {
+      "$date": "2026-02-20T23:46:38.908Z"
+    },
+    "ai_suggestions": [],
+    "complainant_name": "User",
+    "complainant_phone": "9876543210",
+    "complainant_aadhar": "9876543210",
+    "complainant_email": "user@example.com",
+    "source": "citizen_portal",
+    "applicable_sections": [
+      "BNS_102",
+      "BNS_100",
+      "BNS_032"
+    ],
+    "police_notes": "",
+    "resolved_by": "6998e5b99ce2c6bb801576d3"
+  }
+]

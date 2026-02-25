@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
-import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
+import { authService } from "../../api/authService";
 
 const CitizenLogin = () => {
   const [username, setUsername] = useState("");
@@ -16,22 +16,21 @@ const CitizenLogin = () => {
     e.preventDefault();
     setError("");
     try {
-      const response = await axios.post("/api/auth/login", {
-        username,
-        password,
-      });
-      const { token, role, ...userData } = response.data;
+      const data = await authService.login({ username, password });
+      const { token, user } = data;
 
-      if (role !== "citizen") {
+      if (user.role !== "citizen") {
         setError("Access Denied. Not a Citizen account.");
+        authService.logout();
         return;
       }
 
-      login(userData, token, role);
-
-      navigate(`/dashboard/citizen/${userData.username}`, { replace: true });
+      login(user, token, user.role);
+      navigate(`/dashboard/citizen?username=${user.username}`, { replace: true });
     } catch (err: any) {
-      setError(err.response?.data?.error || "Login failed");
+      console.error("Login Error:", err);
+      const errorMessage = err.response?.data?.error || "Login failed";
+      setError(errorMessage);
     }
   };
 

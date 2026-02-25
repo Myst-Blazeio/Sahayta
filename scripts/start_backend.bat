@@ -3,77 +3,32 @@ setlocal
 
 :: Navigate to the backend directory
 cd /d "%~dp0..\backend"
-if %errorlevel% neq 0 (
-    echo [ERROR] Could not find backend directory at %~dp0..\backend
-    pause
-    exit /b 1
+
+if not exist "final_venv" (
+    echo Creating virtual environment...
+    python -m venv final_venv
 )
 
-set "VENV_DIR=final_venv"
+call final_venv\Scripts\activate
 
-:: Check if Python is installed
-python --version >nul 2>&1
-if %errorlevel% neq 0 (
-    echo [ERROR] Python is not installed or not in PATH.
-    pause
-    exit /b 1
-)
+echo Installing dependencies...
+pip install -r requirements.txt
 
-:: Check if virtual environment exists
-if not exist "%VENV_DIR%" (
-    echo [INFO] Creating virtual environment...
-    python -m venv "%VENV_DIR%"
-    if %errorlevel% neq 0 (
-        echo [ERROR] Failed to create virtual environment.
-        pause
-        exit /b 1
-    )
-)
+echo.
+echo Starting Backend Server...
+echo The browser will launch automatically once the server is ready (listening on port 5000).
+echo.
 
-:: Activate virtual environment
-echo [INFO] Activating virtual environment...
-call "%VENV_DIR%\Scripts\activate"
-if %errorlevel% neq 0 (
-    echo [ERROR] Failed to activate virtual environment.
-    pause
-    exit /b 1
-)
+:: Launch a parallel process that waits for port 5000 then opens the browser
+:: Checks every 2 seconds, times out after 60 seconds
+start "" /B powershell -Command "$i=0; while (!(Test-NetConnection localhost -Port 5000 -WarningAction SilentlyContinue).TcpTestSucceeded) { Start-Sleep -Seconds 2; $i++; if ($i -gt 30) { break } }; if ($i -le 30) { Start-Process 'http://localhost:5000/' }"
 
-:: Install dependencies
-echo [INFO] Installing dependencies...
-python -m pip install --upgrade pip
-if exist "requirements.txt" (
-    pip install -r requirements.txt
-    if %errorlevel% neq 0 (
-        echo [ERROR] Failed to install dependencies.
-        pause
-        exit /b 1
-    )
-) else (
-    echo [WARNING] requirements.txt not found.
-)
-
-:: Check MongoDB Connection
-echo [INFO] Checking MongoDB connection...
-python verify_db.py
-if %errorlevel% neq 0 (
-    echo [ERROR] MongoDB check failed.
-    echo [HINT] Ensure MongoDB is running or MONGO_URI is set correctly in backend/.env
-    echo [HINT] If using local MongoDB, make sure MongoDB Community Server is installed and the service is started.
-    pause
-    exit /b 1
-)
-
-:: Start the server and open the browser
-echo [INFO] Starting backend server...
-start "" "http://localhost:5000/police/login"
+:: Run the server in the foreground so logs are visible
 python app.py
 
 if %errorlevel% neq 0 (
-    echo [ERROR] Backend server crashed.
+    echo.
+    echo Backend server crashed with error code %errorlevel%.
     pause
-    exit /b 1
 )
-
 pause
-endlocal
