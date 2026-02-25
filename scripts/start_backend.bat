@@ -1,4 +1,7 @@
 @echo off
+setlocal
+
+:: Navigate to the backend directory
 cd /d "%~dp0..\backend"
 
 if not exist "final_venv" (
