@@ -4,6 +4,8 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from db import get_db
 import datetime
 from flask_jwt_extended import create_access_token, set_access_cookies, unset_jwt_cookies, jwt_required, get_jwt_identity
+import os
+from flask import send_from_directory
 
 # Create a Blueprint for the Frontend (HTML Views) served by Backend
 # Note: we use 'police_views' to distinguish from 'police_bp' (API)
@@ -315,6 +317,14 @@ def analytics():
     return render_template('police/analytics.html', user=user, stats=stats, 
                            chart_labels=chart_labels, chart_data_reported=chart_data_reported,
                            chart_data_resolved=chart_data_resolved, chart_data_rejected=chart_data_rejected)
+
+@police_views.route('/analytics/map')
+@require_route_protection
+def crime_map():
+    # Helper to get absolute path to scripts/output
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    output_dir = os.path.join(current_dir, '..', 'scripts', 'output')
+    return send_from_directory(output_dir, 'kolkata_crime_risk_map.html')
 
 @police_views.route('/profile')
 @require_route_protection
