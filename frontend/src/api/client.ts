@@ -15,7 +15,7 @@ const client = axios.create({
 // Add a request interceptor to include the JWT token in headers
 client.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
@@ -34,8 +34,8 @@ client.interceptors.response.use(
       // Clear token and redirect to login if 401 occurs
       // But avoid redirect loops if already on login page
       if (!window.location.pathname.includes('/login')) {
-         localStorage.removeItem('token');
-         localStorage.removeItem('user');
+         sessionStorage.removeItem('token');
+         sessionStorage.removeItem('user');
          // Use window.location for hard redirect or dispatch an event
          // window.location.href = '/citizen/login'; // Optional: decided by app logic
       }

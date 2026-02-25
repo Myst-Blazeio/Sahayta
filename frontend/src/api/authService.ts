@@ -21,8 +21,8 @@ export const authService = {
   login: async (credentials: any) => {
     const response = await client.post('/auth/login', credentials);
     if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data));
+      sessionStorage.setItem('token', response.data.token);
+      sessionStorage.setItem('user', JSON.stringify(response.data));
     }
     return response.data;
   },
@@ -38,8 +38,8 @@ export const authService = {
   },
 
   logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
     window.location.href = '/'; 
   },
   

@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import { authService } from "../../api/authService";
+import { Loader2 } from "lucide-react";
 
 const CitizenSignup = () => {
   const [formData, setFormData] = useState({
@@ -15,6 +16,7 @@ const CitizenSignup = () => {
     aadhar: "",
   });
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -30,6 +32,7 @@ const CitizenSignup = () => {
       return;
     }
 
+    setIsLoading(true);
     try {
       const { confirmPassword, ...signupData } = formData;
       await authService.register({
@@ -42,6 +45,8 @@ const CitizenSignup = () => {
       console.error("Signup Error:", err);
       const errorMessage = err.response?.data?.error || "Registration failed";
       setError(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -95,6 +100,8 @@ const CitizenSignup = () => {
               <input
                 type="email"
                 name="email"
+                pattern="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+                title="Please enter a valid email address"
                 value={formData.email}
                 onChange={handleChange}
                 className="w-full px-4 py-2 bg-input rounded-md border border-border"
@@ -110,6 +117,8 @@ const CitizenSignup = () => {
                 <input
                   type="tel"
                   name="phone"
+                  pattern="[0-9]{10}"
+                  title="Phone number must be exactly 10 digits"
                   value={formData.phone}
                   onChange={handleChange}
                   className="w-full px-4 py-2 bg-input rounded-md border border-border"
@@ -123,6 +132,8 @@ const CitizenSignup = () => {
                 <input
                   type="text"
                   name="aadhar"
+                  pattern="[0-9]{12}"
+                  title="Aadhar number must be exactly 12 digits"
                   value={formData.aadhar}
                   onChange={handleChange}
                   className="w-full px-4 py-2 bg-input rounded-md border border-border"
@@ -162,9 +173,17 @@ const CitizenSignup = () => {
 
             <button
               type="submit"
-              className="w-full py-3 bg-primary text-primary-foreground font-semibold rounded-md shadow hover:bg-primary/90 transition-colors"
+              disabled={isLoading}
+              className="w-full flex justify-center items-center py-3 bg-primary text-primary-foreground font-semibold rounded-md shadow hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Register
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Registering...
+                </>
+              ) : (
+                "Register"
+              )}
             </button>
           </form>
           <div className="mt-4 text-center">

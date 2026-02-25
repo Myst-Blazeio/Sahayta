@@ -26,6 +26,7 @@ endblock %} {% block content %}
       method="POST"
       action="{{ url_for('police_views.login') }}"
       class="space-y-6"
+      onsubmit="return handleLoginSubmit();"
     >
       <div>
         <label for="username" class="block text-sm font-medium text-gray-700"
@@ -56,7 +57,8 @@ endblock %} {% block content %}
       <div>
         <button
           type="submit"
-          class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          id="submitBtn"
+          class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed items-center"
         >
           Sign In
         </button>
@@ -81,5 +83,16 @@ endblock %} {% block content %}
     </div>
   </div>
 </div>
-{% endblock %}
 
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+  function handleLoginSubmit() {
+    const btn = document.getElementById("submitBtn");
+    btn.disabled = true;
+    btn.innerHTML =
+      '<i data-lucide="loader-2" class="animate-spin w-4 h-4 mr-2 inline"></i> Signing In...';
+    lucide.createIcons();
+    return true;
+  }
+</script>
+{% endblock %}

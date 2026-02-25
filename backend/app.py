@@ -72,6 +72,7 @@ app.register_blueprint(police_views, url_prefix='/police')
 app.config['JWT_TOKEN_LOCATION'] = ['headers', 'cookies']
 app.config['JWT_COOKIE_SECURE'] = False 
 app.config['JWT_COOKIE_CSRF_PROTECT'] = False 
+app.config['JWT_SESSION_COOKIE'] = True  # Expires on browser close
 
 @app.route('/', methods=['GET'])
 def index():

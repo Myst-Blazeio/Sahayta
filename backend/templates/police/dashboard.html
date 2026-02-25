@@ -483,6 +483,8 @@ endblock %} {% block content %}
             <input
               type="tel"
               name="complainant_phone"
+              pattern="[0-9]{10}"
+              title="Phone number must be exactly 10 digits"
               required
               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm border p-2"
             />
@@ -494,6 +496,8 @@ endblock %} {% block content %}
             <input
               type="text"
               name="complainant_aadhar"
+              pattern="[0-9]{12}"
+              title="Aadhar number must be exactly 12 digits"
               required
               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm border p-2"
             />

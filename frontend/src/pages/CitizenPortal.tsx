@@ -799,7 +799,11 @@ const HistoryTab = () => {
         setLoading(false);
       }
     };
-    if (token) fetchData();
+    if (token) {
+      fetchData();
+      const interval = setInterval(fetchData, 30000);
+      return () => clearInterval(interval);
+    }
   }, [token]);
 
   if (loading)
