@@ -321,9 +321,9 @@ def analytics():
 @police_views.route('/analytics/map')
 @require_route_protection
 def crime_map():
-    # Helper to get absolute path to scripts/output
+    # Helper to get absolute path to assets/models/risk_map
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    output_dir = os.path.join(current_dir, '..', 'scripts', 'output')
+    output_dir = os.path.join(current_dir, '..', 'assets', 'models', 'risk_map')
     return send_from_directory(output_dir, 'kolkata_crime_risk_map.html')
 
 @police_views.route('/profile')

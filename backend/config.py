@@ -9,9 +9,9 @@ class Config:
     MONGO_URI = os.environ.get('MONGO_URI','mongodb://localhost:27017/fir_automation')
     JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY','jwt_secret_key_change_in_production')
     ASSETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'assets')
-    CRIME_MODEL_PATH = os.path.join(ASSETS_DIR, 'crime_model.pkl')
-    BNS_ASSETS_PATH = os.path.join(ASSETS_DIR, 'bns_assets.pkl')
-    BNS_TFIDF_PATH = os.path.join(ASSETS_DIR, 'bns_tfidf.pkl')
+    CRIME_MODEL_PATH = os.path.join(ASSETS_DIR, 'models', 'crime_prediction', 'crime_model.pkl')
+    BNS_ASSETS_PATH = os.path.join(ASSETS_DIR, 'models', 'bns', 'bns_assets.pkl')
+    BNS_TFIDF_PATH = os.path.join(ASSETS_DIR, 'models', 'bns', 'bns_tfidf.pkl')
     
 class DevelopmentConfig(Config):
     DEBUG = True
