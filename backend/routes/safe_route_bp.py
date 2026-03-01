@@ -417,9 +417,16 @@ def get_safe_route_map():
         mode = request.args.get('mode', 'car')
         bbox_str = request.args.get('bbox')
 
-        center_lat = (start_lat + end_lat) / 2
-        center_lng = (start_lng + end_lng) / 2
-        m = folium.Map(location=[center_lat, center_lng], zoom_start=13, tiles='CartoDB voyager')
+        m = folium.Map(
+            location=[center_lat, center_lng], 
+            zoom_start=13, 
+            tiles='CartoDB voyager',
+            min_lat=22.4000,
+            max_lat=22.7500,
+            min_lon=88.2500,
+            max_lon=88.5000,
+            max_bounds=True
+        )
 
         # Custom CSS to strongly target the canvas where the heatmap is drawn
         css = """

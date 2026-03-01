@@ -373,7 +373,7 @@ const CommunityAlerts: React.FC<CommunityAlertsProps> = ({ alerts = [] }) => {
                                                     </p>
                                                     <p className="text-sm font-semibold mt-1 flex items-center gap-1">
                                                         <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                                                        {new Date(selectedAlert.issued_at).toLocaleString()}
+                                                        {new Date(selectedAlert.issued_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
                                                     </p>
                                                 </div>
                                             </div>
@@ -384,7 +384,7 @@ const CommunityAlerts: React.FC<CommunityAlertsProps> = ({ alerts = [] }) => {
                                                         Expires:{" "}
                                                     </span>
                                                     <span className="text-amber-700 dark:text-amber-300">
-                                                        {new Date(selectedAlert.expires_at).toLocaleString()}
+                                                        {new Date(selectedAlert.expires_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
                                                     </span>
                                                 </div>
                                             )}

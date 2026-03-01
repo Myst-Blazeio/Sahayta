@@ -28,7 +28,7 @@ export const generateFIRPDF = (fir: FIR) => {
     doc.text(`FIR ID: ${fir._id}`, 20, startY);
 
     doc.setFont("helvetica", "normal");
-    doc.text(`Date Filed: ${new Date(fir.submission_date).toLocaleDateString()}`, 140, startY);
+    doc.text(`Date Filed: ${new Date(fir.submission_date).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}`, 140, startY);
 
     doc.text(`Status: ${fir.status.toUpperCase()}`, 20, startY + 10);
     doc.text(`Station ID: ${fir.station_id}`, 140, startY + 10);
@@ -125,7 +125,7 @@ export const generateFIRPDF = (fir: FIR) => {
         doc.setPage(i);
         doc.setFontSize(10);
         doc.text('Page ' + String(i) + ' of ' + String(pageCount), 190, 280, { align: "right" });
-        doc.text(`Downloaded on: ${new Date().toLocaleString()}`, 20, 280);
+        doc.text(`Downloaded on: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}`, 20, 280);
     }
 
     // Save the PDF

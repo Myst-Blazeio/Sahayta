@@ -32,6 +32,12 @@
   </head>
 
   <body class="bg-gray-50 min-h-screen text-gray-900 font-sans">
+    <!-- Global Snackbar Container -->
+    <div
+      id="global-snackbar-container"
+      class="fixed top-4 left-1/2 transform -translate-x-1/2 z-[100] flex flex-col items-center space-y-2 pointer-events-none w-full max-w-sm px-4"
+    ></div>
+
     {% block content %}{% endblock %} {% if user %}
     <!-- Global Profile Modal -->
     <div

@@ -9,7 +9,7 @@
     const severity = document.getElementById("alertSeverity").value;
 
     if (!title || !message) {
-      alert("Please fill in all fields");
+      showSnackbar("Please fill in all fields", "warning");
       return;
     }
 
@@ -23,15 +23,21 @@
       });
 
       if (response.ok) {
-        alert("Alert broadcasted successfully to all citizens!");
-        location.reload();
+        showSnackbar(
+          "Alert broadcasted successfully to all citizens!",
+          "success",
+        );
+        setTimeout(() => location.reload(), 2000);
       } else {
         const err = await response.json();
-        alert("Failed to broadcast: " + (err.error || "Unknown error"));
+        showSnackbar(
+          "Failed to broadcast: " + (err.error || "Unknown error"),
+          "error",
+        );
       }
     } catch (error) {
       console.error("Error broadcasting alert:", error);
-      alert("An error occurred while broadcasting the alert.");
+      showSnackbar("An error occurred while broadcasting the alert.", "error");
     }
   }
 
@@ -85,9 +91,12 @@
         console.error("Delete failed:", text);
         try {
           const err = JSON.parse(text);
-          alert("Failed to delete: " + (err.error || "Unknown error"));
+          showSnackbar(
+            "Failed to delete: " + (err.error || "Unknown error"),
+            "error",
+          );
         } catch (e) {
-          alert("Failed to delete: " + text);
+          showSnackbar("Failed to delete: " + text, "error");
         }
         // Re-enable button on failure
         if (btnElement) {
@@ -98,7 +107,7 @@
       }
     } catch (error) {
       console.error("Error deleting alert:", error);
-      alert("An error occurred while deleting the alert.");
+      showSnackbar("An error occurred while deleting the alert.", "error");
       if (btnElement) {
         btnElement.disabled = false;
         btnElement.innerHTML =

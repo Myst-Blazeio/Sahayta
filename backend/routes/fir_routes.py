@@ -1,7 +1,7 @@
 
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
-from db import get_db
+from db import get_db, get_ist
 from datetime import datetime
 # from deep_translator import GoogleTranslator
 from ml_service import ml_service
@@ -53,7 +53,7 @@ def submit_fir():
             
     # Prepare FIR Entry
     fir_id = str(uuid.uuid4())
-    current_time = datetime.utcnow()
+    current_time = get_ist()
     
     # ML Prediction for BNS Sections
     ai_suggestions = []
@@ -115,7 +115,7 @@ def submit_fir():
                         'phone': data.get('complainant_phone', 'N/A'),
                         'email': data.get('complainant_email', 'N/A'),
                         'role': 'citizen',
-                        'created_at': datetime.utcnow()
+                        'created_at': get_ist()
                     }
                     result = db.users.insert_one(new_citizen)
                     citizen_user_id = str(result.inserted_id)
@@ -157,7 +157,7 @@ def submit_fir():
             'user_id': citizen_user_id,
             'message': msg,
             'is_read': False,
-            'created_at': datetime.utcnow()
+            'created_at': get_ist()
         }
         db.notifications.insert_one(notification)
         print(f"DEBUG: Notification sent to citizen {citizen_user_id} for manual FIR.")
@@ -180,9 +180,9 @@ def get_user_firs():
         for fir in all_firs:
             fir['_id'] = str(fir['_id'])
             if 'submission_date' in fir:
-                 fir['submission_date'] = fir['submission_date'].isoformat()
+                 fir['submission_date'] = fir['submission_date'].isoformat() + '+05:30'
             if 'last_updated' in fir and isinstance(fir['last_updated'], datetime):
-                 fir['last_updated'] = fir['last_updated'].isoformat()
+                 fir['last_updated'] = fir['last_updated'].isoformat() + '+05:30'
                  
         # Sort by submission date desc
         all_firs.sort(key=lambda x: x.get('submission_date', ''), reverse=True)
@@ -210,9 +210,9 @@ def get_archived_firs():
         for fir in archives:
             fir['_id'] = str(fir['_id'])
             if 'submission_date' in fir and isinstance(fir['submission_date'], datetime):
-                 fir['submission_date'] = fir['submission_date'].isoformat()
+                 fir['submission_date'] = fir['submission_date'].isoformat() + '+05:30'
             if 'last_updated' in fir and isinstance(fir['last_updated'], datetime):
-                 fir['last_updated'] = fir['last_updated'].isoformat()
+                 fir['last_updated'] = fir['last_updated'].isoformat() + '+05:30'
                  
         return jsonify(archives), 200
     return jsonify([]), 500
@@ -242,7 +242,7 @@ def get_pending_firs():
         for fir in firs:
             fir['_id'] = str(fir['_id'])
             if 'submission_date' in fir:
-                 fir['submission_date'] = fir['submission_date'].isoformat()
+                 fir['submission_date'] = fir['submission_date'].isoformat() + '+05:30'
         return jsonify(firs), 200
     return jsonify([]), 500
 
@@ -272,9 +272,9 @@ def get_fir_details(fir_id):
         
     fir['_id'] = str(fir['_id'])
     if 'submission_date' in fir and isinstance(fir['submission_date'], datetime):
-         fir['submission_date'] = fir['submission_date'].isoformat()
+         fir['submission_date'] = fir['submission_date'].isoformat() + '+05:30'
     if 'last_updated' in fir and isinstance(fir['last_updated'], datetime):
-         fir['last_updated'] = fir['last_updated'].isoformat()
+         fir['last_updated'] = fir['last_updated'].isoformat() + '+05:30'
          
     # Check for missing complainant details and fetch from user if possible
     if fir.get('source') == 'citizen_portal' and (
@@ -340,7 +340,7 @@ def update_fir(fir_id):
         update_data = {
             'status': status,
             'police_notes': police_notes,
-            'last_updated': datetime.utcnow()
+            'last_updated': get_ist()
         }
         
         if sections:
@@ -388,7 +388,7 @@ def update_fir(fir_id):
                 'user_id': old_fir['user_id'],
                 'message': msg,
                 'is_read': False,
-                'created_at': datetime.utcnow()
+                'created_at': get_ist()
             }
             db.notifications.insert_one(notification)
             
@@ -407,7 +407,7 @@ def update_fir(fir_id):
                         'user_id': old_fir['user_id'],
                         'message': msg,
                         'is_read': False,
-                        'created_at': datetime.utcnow()
+                        'created_at': get_ist()
                     }
                     db.notifications.insert_one(notification)
                     
@@ -426,7 +426,7 @@ def get_notifications():
         for n in notifs:
             n['_id'] = str(n['_id'])
             if 'created_at' in n:
-                n['created_at'] = n['created_at'].isoformat()
+                n['created_at'] = n['created_at'].isoformat() + '+05:30'
         return jsonify(notifs), 200
     return jsonify([]), 500
 
@@ -469,7 +469,7 @@ def get_community_alerts():
         for alert in alerts:
             alert['_id'] = str(alert['_id'])
             if 'created_at' in alert:
-                alert['created_at'] = alert['created_at'].isoformat()
+                alert['created_at'] = alert['created_at'].isoformat() + '+05:30'
         return jsonify(alerts), 200
     return jsonify([]), 200
 

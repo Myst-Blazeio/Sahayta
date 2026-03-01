@@ -5,13 +5,16 @@ import "./index.css";
 import { HashRouter } from "react-router-dom";
 
 
-// Activate mock API interceptor (prevents ECONNREFUSED proxy errors)
+import { SnackbarProvider } from "./context/SnackbarContext";
 
+// Activate mock API interceptor (prevents ECONNREFUSED proxy errors)
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <HashRouter>
-      <App />
+      <SnackbarProvider>
+        <App />
+      </SnackbarProvider>
     </HashRouter>
   </React.StrictMode>,
 );

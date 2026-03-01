@@ -2,7 +2,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import check_password_hash, generate_password_hash
-from db import get_db
+from db import get_db, get_ist
 import datetime
 from bson import ObjectId
 
@@ -95,7 +95,7 @@ def register():
         'username': username,
         'full_name': full_name,
         'role': role,
-        'created_at': datetime.datetime.utcnow()
+        'created_at': get_ist()
     }
 
     collection = db.users # Default

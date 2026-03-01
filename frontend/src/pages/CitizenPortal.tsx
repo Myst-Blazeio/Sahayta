@@ -16,11 +16,13 @@ import {
   Mail,
   FileText,
   Download,
+  Navigation,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { firService } from "../api/firService";
 import { authService } from "../api/authService";
 import { Notification, Station, FIR, CommunityAlert } from "../types";
+import { useSnackbar } from "../context/SnackbarContext";
 
 const CitizenPortal = () => {
   const [activeTab, setActiveTab] = useState("services");
@@ -131,7 +133,7 @@ const CitizenPortal = () => {
                             <div className="flex-1">
                               <p className="text-sm">{n.message}</p>
                               <p className="text-xs text-muted-foreground mt-1">
-                                {new Date(n.created_at).toLocaleString()}
+                                {new Date(n.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
                               </p>
                               {!n.is_read && (
                                 <button
@@ -209,16 +211,19 @@ const ServicesTab: React.FC<{ setActiveTab: (tab: string) => void }> = ({ setAct
       title: "File an FIR",
       desc: "Report cognizable offenses immediately.",
       action: () => setActiveTab("new-fir"),
+      icon: FileText,
     },
     {
       title: "Safe Route",
       desc: "Navigate safely by avoiding high-crime hotspots in your city.",
       action: () => setActiveTab("safe-route"),
+      icon: Navigation,
     },
     {
       title: "Community Alerts",
       desc: "Stay informed about crimes, safety warnings, and emergencies in your area.",
       action: () => setActiveTab("community-alerts"),
+      icon: Bell,
     },
   ];
 
@@ -235,8 +240,7 @@ const ServicesTab: React.FC<{ setActiveTab: (tab: string) => void }> = ({ setAct
             <div
               className="w-12 h-12 rounded-full flex items-center justify-center mb-4 bg-primary/10 text-primary"
             >
-              {/* Icon placeholder */}
-              <span className="text-xl font-bold">{service.title[0]}</span>
+              <service.icon className="w-6 h-6" />
             </div>
             <h3 className="text-xl font-semibold mb-2">{service.title}</h3>
             <p className="text-muted-foreground">{service.desc}</p>
@@ -259,7 +263,7 @@ const NewFIRTab: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) => {
   });
   const [loading, setLoading] = useState(false);
   const [stations, setStations] = useState<Station[]>([]);
-  const [msg, setMsg] = useState("");
+  const { showSnackbar } = useSnackbar();
   const [dateWarning, setDateWarning] = useState("");
 
 
@@ -303,18 +307,17 @@ const NewFIRTab: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.station_id) {
-      setMsg("Please select a Police Station.");
+      showSnackbar("Please select a Police Station.", "warning");
       return;
     }
     setLoading(true);
-    setMsg("");
 
     try {
       await firService.createFIR(formData);
-      setMsg("FIR Submitted Successfully!");
+      showSnackbar("FIR Submitted Successfully!", "success");
       setTimeout(() => onSuccess(), 1500);
     } catch (error) {
-      setMsg("Error submitting FIR.");
+      showSnackbar("Error submitting FIR.", "error");
     } finally {
       setLoading(false);
     }
@@ -341,14 +344,6 @@ const NewFIRTab: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) => {
           </div>
         </div>
       </div>
-
-      {msg && (
-        <div
-          className={`p-3 rounded mb-4 ${msg.includes("Success") ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
-        >
-          {msg}
-        </div>
-      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Police Station Dropdown */}
@@ -658,7 +653,7 @@ const FIRDetailCard: React.FC<FIRDetailCardProps> = ({ fir, stationName }) => {
               {cfg.label}
             </span>
             <span className="text-xs text-gray-400">
-              {new Date(fir.submission_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+              {new Date(fir.submission_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}
             </span>
           </div>
 
@@ -730,7 +725,8 @@ const FIRDetailCard: React.FC<FIRDetailCardProps> = ({ fir, stationName }) => {
                       { label: 'Date', value: fir.incident_date || 'N/A' },
                       { label: 'Time', value: fir.incident_time || 'N/A' },
                       { label: 'Location', value: fir.location || 'N/A' },
-                      { label: 'Filed On', value: new Date(fir.submission_date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) },
+                      { label: 'Filed On', value: new Date(fir.submission_date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' }) },
+                      { label: 'Status', value: fir.status.toUpperCase(), isStatus: true }
                     ].map(({ label, value }) => (
                       <div key={label} className="flex justify-between items-start gap-4">
                         <dt className="text-xs text-gray-400 shrink-0">{label}</dt>

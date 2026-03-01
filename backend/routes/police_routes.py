@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash
-from db import get_db
+from db import get_db, get_ist
 import datetime
 from bson import ObjectId
 
@@ -33,7 +33,7 @@ def dashboard():
         {
             '$match': {
                 'station_id': user.get('station_id'),
-                'submission_date': {'$gte': datetime.datetime.utcnow() - datetime.timedelta(days=180)}
+                'submission_date': {'$gte': get_ist() - datetime.timedelta(days=180)}
             }
         },
         {
@@ -43,7 +43,7 @@ def dashboard():
                     {
                         '$match': {
                             'station_id': user.get('station_id'),
-                            'submission_date': {'$gte': datetime.datetime.utcnow() - datetime.timedelta(days=180)}
+                            'submission_date': {'$gte': get_ist() - datetime.timedelta(days=180)}
                         }
                     }
                 ]
@@ -69,7 +69,7 @@ def dashboard():
     stats_map = {item['_id']: item['count'] for item in monthly_stats}
     
     # Get last 6 months list
-    today = datetime.datetime.today()
+    today = get_ist()
     for i in range(5, -1, -1):
         d = today - datetime.timedelta(days=i*30)
         m_idx = d.month 
@@ -259,7 +259,7 @@ def create_alert():
         'severity': severity,
         'created_by': current_user_id,
         'station_id': user.get('station_id'),
-        'created_at': datetime.datetime.utcnow(),
+        'created_at': get_ist(),
         'is_active': True
     }
     
@@ -276,7 +276,7 @@ def create_alert():
             'is_read': False,
             'type': 'community_alert',
             'alert_id': alert_id,
-            'created_at': datetime.datetime.utcnow()
+            'created_at': get_ist()
         })
     
     if notifications:

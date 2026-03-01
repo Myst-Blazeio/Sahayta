@@ -431,7 +431,7 @@ const AnonymousTip: React.FC = () => {
                                             {status.label}
                                         </span>
                                         <span className="text-xs text-muted-foreground">
-                                            {new Date(tip.submitted_at).toLocaleDateString()}
+                                            {new Date(tip.submitted_at).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
                                         </span>
                                     </div>
                                 </motion.div>

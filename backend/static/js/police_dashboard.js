@@ -127,7 +127,7 @@ window.openReviewModal = async function (firId) {
 
         if (!response.ok) {
             if (response.status === 401 || response.status === 403) {
-                alert('Session expired or unauthorized. Please login again.');
+                showSnackbar('Session expired or unauthorized. Please login again.', 'warning');
                 window.location.href = '/police/login';
                 return;
             }
@@ -182,7 +182,7 @@ window.openReviewModal = async function (firId) {
 
     } catch (error) {
         console.error(error);
-        alert('Error loading FIR details');
+        showSnackbar('Error loading FIR details', 'error');
     }
 };
 
@@ -345,17 +345,17 @@ window.submitManualFIR = async function (event) {
         });
 
         if (response.ok) {
-            alert('FIR Submitted Successfully');
+            showSnackbar('FIR Submitted Successfully', 'success');
             toggleNewReportModal();
-            location.reload();
+            setTimeout(() => location.reload(), 2000);
         } else {
             const err = await response.json();
             console.error('Submission Failed:', err);
-            alert('Submission Failed: ' + (err.error || 'Unknown error'));
+            showSnackbar('Submission Failed: ' + (err.error || 'Unknown error'), 'error');
         }
     } catch (error) {
         console.error('Error submitting FIR:', error);
-        alert('Error submitting FIR: ' + error.message);
+        showSnackbar('Error submitting FIR: ' + error.message, 'error');
     }
 };
 
@@ -363,7 +363,7 @@ window.submitManualFIR = async function (event) {
 
 window.suggestSections = async function () {
     const text = document.getElementById('modalTranslatedText').textContent;
-    if (!text) return alert('No text content available for analysis');
+    if (!text) return showSnackbar('No text content available for analysis', 'warning');
 
     const container = document.getElementById('aiSuggestionsContainer');
     container.innerHTML = '<div class="text-center text-purple-600 py-4 text-sm"><i data-lucide="loader-2" class="animate-spin inline mr-2"></i>Analyzing...</div>';
@@ -449,15 +449,15 @@ window.updateFIR = async function () {
         });
 
         if (response.ok) {
-            alert('FIR Updated Successfully');
+            showSnackbar('FIR Updated Successfully', 'success');
             closeReviewModal();
-            location.reload();
+            setTimeout(() => location.reload(), 2000);
         } else {
-            alert('Update failed');
+            showSnackbar('Update failed', 'error');
         }
     } catch (error) {
         console.error(error);
-        alert('Error updating FIR');
+        showSnackbar('Error updating FIR', 'error');
     }
 };
 

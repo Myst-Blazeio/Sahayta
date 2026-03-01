@@ -1,7 +1,7 @@
 from functools import wraps
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify
 from werkzeug.security import check_password_hash, generate_password_hash
-from db import get_db
+from db import get_db, get_ist
 import datetime
 from flask_jwt_extended import create_access_token, set_access_cookies, unset_jwt_cookies, jwt_required, get_jwt_identity
 import os
@@ -102,7 +102,7 @@ def signup():
             'phone': phone,
             'email': email,
             'role': 'police',
-            'created_at': datetime.datetime.utcnow()
+            'created_at': get_ist()
         }
         db.police.insert_one(new_user)
         flash('Account created! Please login.', 'success')
@@ -148,7 +148,7 @@ def get_global_chart_data(db):
     from dateutil.relativedelta import relativedelta
     import datetime
     
-    today = datetime.datetime.utcnow()
+    today = get_ist()
     # Go back 5 months from the current month to get 6 months total (including current)
     start_month_date = today - relativedelta(months=5)
     

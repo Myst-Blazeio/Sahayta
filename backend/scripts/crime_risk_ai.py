@@ -159,7 +159,16 @@ class CrimeRiskAI:
         
         # Center map on Kolkata
         kolkata_coords = [22.5726, 88.3639]
-        m = folium.Map(location=kolkata_coords, zoom_start=12, tiles='OpenStreetMap')
+        m = folium.Map(
+            location=kolkata_coords, 
+            zoom_start=12, 
+            tiles='OpenStreetMap',
+            min_lat=22.4000,
+            max_lat=22.7500,
+            min_lon=88.2500,
+            max_lon=88.5000,
+            max_bounds=True
+        )
         
         # Add Satellite Layer
         folium.TileLayer(

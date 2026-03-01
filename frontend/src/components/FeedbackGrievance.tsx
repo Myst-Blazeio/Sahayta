@@ -402,7 +402,7 @@ const FeedbackGrievance: React.FC = () => {
                                                 </span>
                                                 <span className="flex items-center gap-1">
                                                     <Clock className="w-3 h-3" />
-                                                    {new Date(fb.submitted_at).toLocaleDateString()}
+                                                    {new Date(fb.submitted_at).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
                                                 </span>
                                                 {fb.rating > 0 && (
                                                     <span className="flex items-center gap-0.5">

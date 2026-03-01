@@ -1,6 +1,11 @@
 from flask_pymongo import PyMongo
+import datetime
 
 mongo = PyMongo()
+
+def get_ist():
+    """Returns a naive datetime object representing current IST time."""
+    return datetime.datetime.utcnow() + datetime.timedelta(hours=5, minutes=30)
 
 def init_db(app):
     mongo.init_app(app)
