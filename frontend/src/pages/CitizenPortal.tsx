@@ -4,6 +4,7 @@ import Footer from "../components/Footer";
 import { generateFIRPDF } from "../utils/pdfGenerator";
 import { motion, AnimatePresence } from "framer-motion";
 import CommunityAlerts from "../components/CommunityAlerts";
+import SafeRouteTab from "./SafeRouteTab";
 import {
   Bell,
   X,
@@ -155,7 +156,7 @@ const CitizenPortal = () => {
         {/* Custom Community Alerts header and list removed; now fully integrated into the ServicesTab/Tabs flow */}
 
         <div className="flex flex-wrap justify-center gap-2 bg-muted p-1 rounded-lg mb-8 w-full">
-          {["services", "new-fir", "history", "community-alerts", "profile"].map((tab) => (
+          {["services", "safe-route", "new-fir", "history", "community-alerts", "profile"].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -165,6 +166,7 @@ const CitizenPortal = () => {
                 }`}
             >
               {tab === "services" && "Services"}
+              {tab === "safe-route" && "Safe Route"}
               {tab === "new-fir" && "File FIR"}
               {tab === "history" && "My FIRs"}
               {tab === "community-alerts" && "Alerts"}
@@ -183,6 +185,7 @@ const CitizenPortal = () => {
           {activeTab === "services" && (
             <ServicesTab setActiveTab={setActiveTab} />
           )}
+          {activeTab === "safe-route" && <SafeRouteTab />}
           {activeTab === "new-fir" && (
             <NewFIRTab onSuccess={() => setActiveTab("history")} />
           )}
@@ -207,7 +210,11 @@ const ServicesTab: React.FC<{ setActiveTab: (tab: string) => void }> = ({ setAct
       desc: "Report cognizable offenses immediately.",
       action: () => setActiveTab("new-fir"),
     },
-
+    {
+      title: "Safe Route",
+      desc: "Navigate safely by avoiding high-crime hotspots in your city.",
+      action: () => setActiveTab("safe-route"),
+    },
     {
       title: "Community Alerts",
       desc: "Stay informed about crimes, safety warnings, and emergencies in your area.",
@@ -532,12 +539,12 @@ const StationDropdown: React.FC<StationDropdownProps> = ({ stations, selected, o
 
 function getStatusIndex(status: string): number {
   switch (status) {
-    case 'submitted':  return 0;
-    case 'pending':    return 1;
+    case 'submitted': return 0;
+    case 'pending': return 1;
     case 'in_progress': return 2;
-    case 'resolved':   return 3;
-    case 'rejected':   return 3;
-    default:           return 0;
+    case 'resolved': return 3;
+    case 'rejected': return 3;
+    default: return 0;
   }
 }
 
@@ -548,11 +555,13 @@ const ProgressTracker: React.FC<ProgressTrackerProps> = ({ status }) => {
   const currentIdx = getStatusIndex(status);
 
   const nodes = [
-    { label: 'Submitted',   sublabel: 'FIR received',        idx: 0 },
-    { label: 'Pending',     sublabel: 'Awaiting review',      idx: 1 },
-    { label: 'In Progress', sublabel: 'Under investigation',  idx: 2 },
-    { label: isRejected ? 'Rejected' : 'Resolved',
-      sublabel: isRejected ? 'Case closed' : 'Case resolved', idx: 3 },
+    { label: 'Submitted', sublabel: 'FIR received', idx: 0 },
+    { label: 'Pending', sublabel: 'Awaiting review', idx: 1 },
+    { label: 'In Progress', sublabel: 'Under investigation', idx: 2 },
+    {
+      label: isRejected ? 'Rejected' : 'Resolved',
+      sublabel: isRejected ? 'Case closed' : 'Case resolved', idx: 3
+    },
   ];
 
   const trackPct = currentIdx === 0 ? '0%' : `${(currentIdx / 3) * 100}%`;
@@ -575,7 +584,7 @@ const ProgressTracker: React.FC<ProgressTrackerProps> = ({ status }) => {
 
         {nodes.map((node) => {
           const reached = node.idx <= currentIdx;
-          const isLast  = node.idx === 3;
+          const isLast = node.idx === 3;
           const isCurrent = node.idx === currentIdx;
 
           let ringClass = 'border-2 border-gray-300 bg-white text-gray-400';
@@ -597,11 +606,10 @@ const ProgressTracker: React.FC<ProgressTrackerProps> = ({ status }) => {
                 }
               </div>
               <div className="text-center">
-                <p className={`text-[11px] font-bold leading-tight ${
-                  reached
-                    ? isLast && isRejected ? 'text-red-600' : 'text-green-700'
-                    : 'text-gray-400'
-                }`}>{node.label}</p>
+                <p className={`text-[11px] font-bold leading-tight ${reached
+                  ? isLast && isRejected ? 'text-red-600' : 'text-green-700'
+                  : 'text-gray-400'
+                  }`}>{node.label}</p>
                 <p className="text-[10px] text-gray-400 leading-tight mt-0.5">{node.sublabel}</p>
               </div>
             </div>
@@ -623,12 +631,12 @@ const FIRDetailCard: React.FC<FIRDetailCardProps> = ({ fir, stationName }) => {
   const [expanded, setExpanded] = useState(false);
 
   const statusConfig: Record<string, { label: string; badge: string; accent: string }> = {
-    pending:     { label: 'Pending',     badge: 'bg-amber-100 text-amber-800 ring-1 ring-amber-300',    accent: 'border-amber-400' },
-    in_progress: { label: 'In Progress', badge: 'bg-blue-100 text-blue-800 ring-1 ring-blue-300',       accent: 'border-blue-500' },
-    resolved:    { label: 'Resolved',    badge: 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300', accent: 'border-emerald-500' },
-    rejected:    { label: 'Rejected',    badge: 'bg-red-100 text-red-800 ring-1 ring-red-300',           accent: 'border-red-500' },
-    submitted:   { label: 'Submitted',   badge: 'bg-gray-100 text-gray-700 ring-1 ring-gray-300',        accent: 'border-gray-400' },
-    accepted:    { label: 'Accepted',    badge: 'bg-blue-100 text-blue-800 ring-1 ring-blue-300',        accent: 'border-blue-500' },
+    pending: { label: 'Pending', badge: 'bg-amber-100 text-amber-800 ring-1 ring-amber-300', accent: 'border-amber-400' },
+    in_progress: { label: 'In Progress', badge: 'bg-blue-100 text-blue-800 ring-1 ring-blue-300', accent: 'border-blue-500' },
+    resolved: { label: 'Resolved', badge: 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300', accent: 'border-emerald-500' },
+    rejected: { label: 'Rejected', badge: 'bg-red-100 text-red-800 ring-1 ring-red-300', accent: 'border-red-500' },
+    submitted: { label: 'Submitted', badge: 'bg-gray-100 text-gray-700 ring-1 ring-gray-300', accent: 'border-gray-400' },
+    accepted: { label: 'Accepted', badge: 'bg-blue-100 text-blue-800 ring-1 ring-blue-300', accent: 'border-blue-500' },
   };
   const cfg = statusConfig[fir.status] ?? statusConfig.submitted;
 
@@ -650,7 +658,7 @@ const FIRDetailCard: React.FC<FIRDetailCardProps> = ({ fir, stationName }) => {
               {cfg.label}
             </span>
             <span className="text-xs text-gray-400">
-              {new Date(fir.submission_date).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' })}
+              {new Date(fir.submission_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
             </span>
           </div>
 
@@ -675,11 +683,10 @@ const FIRDetailCard: React.FC<FIRDetailCardProps> = ({ fir, stationName }) => {
         <div className="flex sm:flex-col items-center sm:items-end gap-2 shrink-0">
           <button
             onClick={() => setExpanded(!expanded)}
-            className={`inline-flex items-center gap-1.5 text-xs px-4 py-2 rounded-lg font-semibold transition-all ${
-              expanded
-                ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
-            }`}
+            className={`inline-flex items-center gap-1.5 text-xs px-4 py-2 rounded-lg font-semibold transition-all ${expanded
+              ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
+              }`}
           >
             {expanded ? 'Close ▲' : 'View Details ▼'}
           </button>
@@ -720,8 +727,8 @@ const FIRDetailCard: React.FC<FIRDetailCardProps> = ({ fir, stationName }) => {
                   <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-3">Incident Details</p>
                   <dl className="space-y-2.5">
                     {[
-                      { label: 'Date',     value: fir.incident_date || 'N/A' },
-                      { label: 'Time',     value: fir.incident_time || 'N/A' },
+                      { label: 'Date', value: fir.incident_date || 'N/A' },
+                      { label: 'Time', value: fir.incident_time || 'N/A' },
                       { label: 'Location', value: fir.location || 'N/A' },
                       { label: 'Filed On', value: new Date(fir.submission_date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) },
                     ].map(({ label, value }) => (
@@ -738,7 +745,7 @@ const FIRDetailCard: React.FC<FIRDetailCardProps> = ({ fir, stationName }) => {
                   <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-3">Assigned Station</p>
                   <dl className="space-y-2.5">
                     {[
-                      { label: 'Station',    value: stationName },
+                      { label: 'Station', value: stationName },
                       { label: 'Station ID', value: fir.station_id },
                     ].map(({ label, value }) => (
                       <div key={label} className="flex justify-between items-start gap-4">

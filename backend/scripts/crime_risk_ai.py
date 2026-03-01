@@ -254,7 +254,7 @@ class CrimeRiskAI:
              '''
         m.get_root().html.add_child(folium.Element(legend_html))
         
-        folium.LayerControl().add_to(m)
+        folium.LayerControl(collapsed=False).add_to(m)
         output_file = os.path.join(MODELS_DIR, 'kolkata_crime_risk_map.html')
         m.save(output_file)
         print(f"Map saved successfully to {output_file}")

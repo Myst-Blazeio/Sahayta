@@ -61,11 +61,14 @@ from routes.police_routes import police_bp
 
 print("Importing police_views...")
 from routes.police_views import police_views
+print("Importing safe_route_bp...")
+from routes.safe_route_bp import safe_route_bp
 
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
 app.register_blueprint(fir_bp, url_prefix='/api/fir')
 app.register_blueprint(intelligence_bp, url_prefix='/api/intelligence')
 app.register_blueprint(police_bp, url_prefix='/api/police')
+app.register_blueprint(safe_route_bp, url_prefix='/api/safe-route')
 app.register_blueprint(police_views, url_prefix='/police')
 
 # JWT Config for Cookies
