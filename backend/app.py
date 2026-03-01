@@ -107,9 +107,9 @@ def keep_alive():
     while True:
         try:
             requests.get(url, timeout=5)
-            print("🔄 Keep-alive ping sent", flush=True)
+            print("OK: Keep-alive ping sent", flush=True)
         except Exception as e:
-            print("⚠️ Keep-alive failed:", e, flush=True)
+            print("WARN: Keep-alive failed:", e, flush=True)
         time.sleep(KEEP_ALIVE_INTERVAL)
 
 def start_keep_alive():

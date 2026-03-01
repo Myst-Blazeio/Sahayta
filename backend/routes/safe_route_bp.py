@@ -46,9 +46,10 @@ import threading
 
 graph_lock = threading.Lock()
 
-def get_graph(center_lat=22.5726, center_lng=88.3639, dist=15000):
+def get_graph(center_lat=22.5726, center_lng=88.3639, dist=7000):
     """
     Load the graph for Kolkata. Saves and loads from disk to avoid slow OSM queries.
+    Reduced distance to 7km to fit 512MB RAM constraints on Render.
     """
     global G_cache
     if G_cache is not None:
@@ -63,7 +64,7 @@ def get_graph(center_lat=22.5726, center_lng=88.3639, dist=15000):
             return G_cache
             
         if os.path.exists(graph_path):
-            print("Loading 15km OSM graph from disk cache...")
+            print("Loading 7km OSM graph from disk cache...")
             try:
                 G = ox.load_graphml(graph_path)
                 print("Graph loaded from disk and initialized.")
@@ -72,10 +73,10 @@ def get_graph(center_lat=22.5726, center_lng=88.3639, dist=15000):
             except Exception as e:
                 print(f"Error loading from disk: {e}")
                 
-        print("Downloading OSM network graph for Kolkata (15km radius)... this will take 1-2 minutes.")
+        print("Downloading OSM network graph for Kolkata (7km radius)... this will take 1-2 minutes.")
         try:
             ox.settings.timeout = 1800 # 30 mins just in case
-            ox.settings.memory = 1073741824 # 1GB
+            ox.settings.memory = 268435456 # 256MB for free tier Render
             
             # Use 'drive' network type, but simplify=True to heavily reduce edge bloat
             point = (center_lat, center_lng)
