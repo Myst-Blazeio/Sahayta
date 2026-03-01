@@ -8,17 +8,19 @@ from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.model_selection import train_test_split
 import os
 import sys
+import joblib
+import json
 
 # Configure Paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # Going up two levels from backend/scripts to project root, then down to research/crime_prediction
 PROJECT_ROOT = os.path.dirname(os.path.dirname(BASE_DIR))
 DATA_PATH = os.path.join(PROJECT_ROOT, 'scripts', 'crime_kolkata.csv')
-OUTPUT_DIR = os.path.join(BASE_DIR, 'output')
-OUTPUT_FILE = os.path.join(OUTPUT_DIR, 'kolkata_crime_risk_map.html')
+ASSETS_DIR = os.path.join(PROJECT_ROOT, 'backend', 'assets')
+MODELS_DIR = os.path.join(ASSETS_DIR, 'models', 'risk_map')
 
 # Ensure output directory exists
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+os.makedirs(MODELS_DIR, exist_ok=True)
 
 class CrimeRiskAI:
     def __init__(self, data_path):
@@ -94,8 +96,8 @@ class CrimeRiskAI:
         
         # 2. Anomaly Detection (Isolation Forest)
         # To find unusual spikes in crime
-        iso = IsolationForest(contamination=0.05, random_state=42)
-        self.df['Anomaly'] = iso.fit_predict(self.df[['Crime_Count', 'Latitude', 'Longitude']])
+        self.model_anomaly = IsolationForest(contamination=0.05, random_state=42)
+        self.df['Anomaly'] = self.model_anomaly.fit_predict(self.df[['Crime_Count', 'Latitude', 'Longitude']])
         # -1 is anomaly, 1 is normal
         
         # 3. Crime Type Prediction (Random Forest Classifier)
@@ -144,15 +146,16 @@ class CrimeRiskAI:
         
         # Categorize
         def get_risk_category(score):
-            if score < 25: return 'Green' # Low
-            elif score < 50: return 'Yellow' # Moderate
-            elif score < 75: return 'Orange' # High
+            if score < 40: return 'Green' # Low
+            elif score < 65: return 'Yellow' # Moderate
+            elif score < 85: return 'Orange' # High
             else: return 'Red' # Critical
             
         self.df['Risk_Category'] = self.df['Risk_Index'].apply(get_risk_category)
 
     def generate_map(self):
-        print(f"Generating map at {OUTPUT_FILE}...")
+        output_file = os.path.join(MODELS_DIR, 'kolkata_crime_risk_map.html')
+        print(f"Generating map at {output_file}...")
         
         # Center map on Kolkata
         kolkata_coords = [22.5726, 88.3639]
@@ -172,23 +175,25 @@ class CrimeRiskAI:
         HeatMap(heat_data, radius=15, blur=20, max_zoom=1, name='Crime Heatmap').add_to(m)
         
         # 2. Suspected Crime Zones by Risk Level
-        # Create FeatureGroups for each risk level
-        fg_red = folium.FeatureGroup(name="Critical Risk (Red)", show=True)
-        fg_orange = folium.FeatureGroup(name="High Risk (Orange)", show=True)
-        fg_yellow = folium.FeatureGroup(name="Moderate Risk (Yellow)", show=False)
-        fg_green = folium.FeatureGroup(name="Low Risk (Green)", show=False)
+        # Create MarkerClusters for performance instead of raw FeatureGroups, except for green which we omit
+        mc_red = MarkerCluster(name="Critical Risk (Red)", show=True)
+        mc_orange = MarkerCluster(name="High Risk (Orange)", show=True)
+        mc_yellow = MarkerCluster(name="Moderate Risk (Yellow)", show=False)
         
         groups = {
-            'Red': fg_red,
-            'Orange': fg_orange,
-            'Yellow': fg_yellow,
-            'Green': fg_green
+            'Red': mc_red,
+            'Orange': mc_orange,
+            'Yellow': mc_yellow
         }
         
         # Color mapping for icons/circles
-        color_map = {'Green': 'green', 'Yellow': 'orange', 'Orange': 'darkred', 'Red': 'darkred'}
+        color_map = {'Yellow': 'orange', 'Orange': 'darkred', 'Red': 'darkred'}
         
         for idx, row in self.df.iterrows():
+            cat = row['Risk_Category']
+            if cat == 'Green':
+                continue # Skip green zones for marker performance; heatmap covers density
+                
             time_slot = row['TimeSlot']
             predicted_type = row.get('Predicted_Crime_Type', 'Unknown')
             confidence = row.get('Prediction_Confidence', 0.0)
@@ -206,8 +211,10 @@ class CrimeRiskAI:
             </div>
             """
             
-            cat = row['Risk_Category']
-            target_fg = groups.get(cat, fg_green)
+            target_fg = groups.get(cat)
+            if not target_fg:
+                continue
+            
             color = color_map.get(cat, 'blue')
             
             # Add Marker
@@ -228,7 +235,7 @@ class CrimeRiskAI:
                 popup=f"Risk: {row['Risk_Index']:.1f}"
             ).add_to(target_fg)
 
-        # Add all FeatureGroups to the map
+        # Add all MarkerClusters to the map
         for fg in groups.values():
             fg.add_to(m)
         
@@ -247,9 +254,36 @@ class CrimeRiskAI:
              '''
         m.get_root().html.add_child(folium.Element(legend_html))
         
-        folium.LayerControl().add_to(m)
-        m.save(OUTPUT_FILE)
-        print(f"Map saved successfully to {OUTPUT_FILE}")
+        folium.LayerControl(collapsed=False).add_to(m)
+        output_file = os.path.join(MODELS_DIR, 'kolkata_crime_risk_map.html')
+        m.save(output_file)
+        print(f"Map saved successfully to {output_file}")
+
+    def export_data_and_models(self):
+        print("Exporting models and JSON data...")
+        
+        # 1. Export Models
+        if self.model_volume is not None:
+            joblib.dump(self.model_volume, os.path.join(MODELS_DIR, 'model_volume.pkl'))
+        if getattr(self, 'model_anomaly', None) is not None:
+            joblib.dump(self.model_anomaly, os.path.join(MODELS_DIR, 'model_anomaly.pkl'))
+        if self.model_classification is not None:
+            joblib.dump(self.model_classification, os.path.join(MODELS_DIR, 'model_classification.pkl'))
+        if self.label_encoders:
+            joblib.dump(self.label_encoders, os.path.join(MODELS_DIR, 'label_encoders.pkl'))
+            
+        print(f"Models saved successfully to {MODELS_DIR}")
+        
+        # 2. Export Data as JSON
+        json_file = os.path.join(MODELS_DIR, 'kolkata_crime_risk_data.json')
+        export_cols = ['Latitude', 'Longitude', 'Crime_Count', 'Ward', 'TimeSlot', 
+                       'Predicted_Volume', 'Risk_Score_Raw', 'Risk_Index', 'Risk_Category']
+        if 'Predicted_Crime_Type' in self.df.columns:
+            export_cols.extend(['Predicted_Crime_Type', 'Prediction_Confidence'])
+            
+        export_df = self.df[export_cols].copy()
+        export_df.to_json(json_file, orient='records', default_handler=str)
+        print(f"Data saved successfully to {json_file}")
 
     def run(self):
         if self.load_data():
@@ -258,6 +292,7 @@ class CrimeRiskAI:
             self.train_models()
             self.calculate_risk_index()
             self.generate_map()
+            self.export_data_and_models()
         else:
             print("Aborting due to data load error.")
 

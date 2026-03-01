@@ -4,17 +4,20 @@ import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import { useAuth } from "../../context/AuthContext";
 import { authService } from "../../api/authService";
+import { Loader2 } from "lucide-react";
 
 const CitizenLogin = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setIsLoading(true);
     try {
       const data = await authService.login({ username, password });
       const { token, user } = data;
@@ -31,6 +34,8 @@ const CitizenLogin = () => {
       console.error("Login Error:", err);
       const errorMessage = err.response?.data?.error || "Login failed";
       setError(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -74,9 +79,17 @@ const CitizenLogin = () => {
             </div>
             <button
               type="submit"
-              className="w-full py-3 bg-primary text-primary-foreground font-semibold rounded-md shadow hover:bg-primary/90 transition-colors"
+              disabled={isLoading}
+              className="w-full flex justify-center items-center py-3 bg-primary text-primary-foreground font-semibold rounded-md shadow hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Sign In
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Signing In...
+                </>
+              ) : (
+                "Sign In"
+              )}
             </button>
           </form>
           <div className="mt-4 text-center">
