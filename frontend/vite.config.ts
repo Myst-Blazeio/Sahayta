@@ -4,7 +4,7 @@ import path from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: '/Final-Year-Project/',
+  base: '/Sahayta/',
   plugins: [react()],
   resolve: {
     alias: {
