@@ -417,6 +417,9 @@ def get_safe_route_map():
         mode = request.args.get('mode', 'car')
         bbox_str = request.args.get('bbox')
 
+        center_lat = (start_lat + end_lat) / 2.0
+        center_lng = (start_lng + end_lng) / 2.0
+
         m = folium.Map(
             location=[center_lat, center_lng], 
             zoom_start=13, 

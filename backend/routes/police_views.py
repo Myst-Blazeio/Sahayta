@@ -324,7 +324,7 @@ def crime_map():
     # Helper to get absolute path to assets/models/risk_map
     current_dir = os.path.dirname(os.path.abspath(__file__))
     output_dir = os.path.join(current_dir, '..', 'assets', 'models', 'risk_map')
-    return send_from_directory(output_dir, 'kolkata_crime_risk_map.html', max_age=0)
+    return send_from_directory(output_dir, 'kolkata_crime_risk_data.json', max_age=0)
 
 @police_views.route('/profile')
 @require_route_protection

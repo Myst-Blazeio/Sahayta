@@ -154,119 +154,8 @@ class CrimeRiskAI:
         self.df['Risk_Category'] = self.df['Risk_Index'].apply(get_risk_category)
 
     def generate_map(self):
-        output_file = os.path.join(MODELS_DIR, 'kolkata_crime_risk_map.html')
-        print(f"Generating map at {output_file}...")
-        
-        # Center map on Kolkata
-        kolkata_coords = [22.5726, 88.3639]
-        m = folium.Map(
-            location=kolkata_coords, 
-            zoom_start=12, 
-            tiles='OpenStreetMap',
-            min_lat=22.4000,
-            max_lat=22.7500,
-            min_lon=88.2500,
-            max_lon=88.5000,
-            max_bounds=True
-        )
-        
-        # Add Satellite Layer
-        folium.TileLayer(
-            tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-            attr='Google Satellite',
-            name='Satellite View',
-            overlay=False,
-            control=True
-        ).add_to(m)
-        
-        # 1. Heatmap Layer
-        heat_data = self.df[['Latitude', 'Longitude', 'Crime_Count']].values.tolist()
-        HeatMap(heat_data, radius=15, blur=20, max_zoom=1, name='Crime Heatmap').add_to(m)
-        
-        # 2. Suspected Crime Zones by Risk Level
-        # Create MarkerClusters for performance instead of raw FeatureGroups, except for green which we omit
-        mc_red = MarkerCluster(name="Critical Risk (Red)", show=True)
-        mc_orange = MarkerCluster(name="High Risk (Orange)", show=True)
-        mc_yellow = MarkerCluster(name="Moderate Risk (Yellow)", show=False)
-        
-        groups = {
-            'Red': mc_red,
-            'Orange': mc_orange,
-            'Yellow': mc_yellow
-        }
-        
-        # Color mapping for icons/circles
-        color_map = {'Yellow': 'orange', 'Orange': 'darkred', 'Red': 'darkred'}
-        
-        for idx, row in self.df.iterrows():
-            cat = row['Risk_Category']
-            if cat == 'Green':
-                continue # Skip green zones for marker performance; heatmap covers density
-                
-            time_slot = row['TimeSlot']
-            predicted_type = row.get('Predicted_Crime_Type', 'Unknown')
-            confidence = row.get('Prediction_Confidence', 0.0)
-            
-            popup_html = f"""
-            <div style="width:220px; font-family: Arial, sans-serif;">
-                <h4 style="margin-top:0; margin-bottom:5px; color:#333;">Ward {int(row['Ward'])} Area</h4>
-                <b>Risk Score:</b> <strong>{row['Risk_Index']:.1f}/100</strong><br>
-                <b>Category:</b> <span style="color:{row['Risk_Category'].lower()}; font-weight:bold;">{row['Risk_Category']}</span><br>
-                <hr style="margin:5px 0;">
-                <b style="color:#e74c3c;">Predicted Crime:</b> {predicted_type}<br>
-                <b>Confidence:</b> {confidence:.1f}%<br>
-                <b>Peak Risk Time:</b> {time_slot}<br>
-                <b>Expected Volume:</b> {row['Predicted_Volume']:.1f} incidents<br>
-            </div>
-            """
-            
-            target_fg = groups.get(cat)
-            if not target_fg:
-                continue
-            
-            color = color_map.get(cat, 'blue')
-            
-            # Add Marker
-            folium.Marker(
-                location=[row['Latitude'], row['Longitude']],
-                popup=folium.Popup(popup_html, max_width=300),
-                icon=folium.Icon(color=color, icon='warning-sign', prefix='glyphicon')
-            ).add_to(target_fg)
-            
-            # Add Circle
-            folium.CircleMarker(
-                location=[row['Latitude'], row['Longitude']],
-                radius=10,
-                color=color,
-                fill=True,
-                fill_color=color,
-                fill_opacity=0.4,
-                popup=f"Risk: {row['Risk_Index']:.1f}"
-            ).add_to(target_fg)
-
-        # Add all MarkerClusters to the map
-        for fg in groups.values():
-            fg.add_to(m)
-        
-        # Legend (Custom HTML)
-        legend_html = '''
-             <div style="position: fixed; 
-                         bottom: 50px; left: 50px; width: 150px; height: 130px; 
-                         border:2px solid grey; z-index:9999; font-size:14px;
-                         background-color:white; opacity:0.9; padding: 10px;">
-                 <b>Risk Levels</b><br>
-                 <i style="background:green; width:10px; height:10px; display:inline-block;"></i> Low Risk<br>
-                 <i style="background:yellow; width:10px; height:10px; display:inline-block;"></i> Moderate Risk<br>
-                 <i style="background:orange; width:10px; height:10px; display:inline-block;"></i> High Risk<br>
-                 <i style="background:red; width:10px; height:10px; display:inline-block;"></i> Critical Risk<br>
-             </div>
-             '''
-        m.get_root().html.add_child(folium.Element(legend_html))
-        
-        folium.LayerControl(collapsed=False).add_to(m)
-        output_file = os.path.join(MODELS_DIR, 'kolkata_crime_risk_map.html')
-        m.save(output_file)
-        print(f"Map saved successfully to {output_file}")
+        # Map generation is now handled by the frontend.
+        pass
 
     def export_data_and_models(self):
         print("Exporting models and JSON data...")
@@ -300,7 +189,8 @@ class CrimeRiskAI:
             self.perform_clustering()
             self.train_models()
             self.calculate_risk_index()
-            self.generate_map()
+            # self.generate_map()
+
             self.export_data_and_models()
         else:
             print("Aborting due to data load error.")
