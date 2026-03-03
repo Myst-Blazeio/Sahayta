@@ -127,19 +127,9 @@ def stats():
     if not user:
         return jsonify({'error': 'User not found'}), 404
         
-    user_id_str = str(user['_id'])
-    
-    # Calculate stats for profile page
-    # FIRs handled/received by this officer
-    received_count = db.firs.count_documents({'received_by': user_id_str})
-    # Resolved by this officer (look in archives for resolved status + resolved_by)
-    resolved_count = db.archives.count_documents({'resolved_by': user_id_str, 'status': 'resolved'})
-    
     return jsonify({
         'email': user.get('email', 'N/A'),
-        'phone': user.get('phone', 'N/A'),
-        'received_count': received_count,
-        'resolved_count': resolved_count
+        'phone': user.get('phone', 'N/A')
     })
 
 

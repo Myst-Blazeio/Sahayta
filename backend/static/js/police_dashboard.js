@@ -300,8 +300,6 @@ window.toggleProfileModal = async function () {
                 const stats = await response.json();
                 document.getElementById('profileEmail').textContent = stats.email || 'N/A';
                 document.getElementById('profilePhone').textContent = stats.phone || 'N/A';
-                document.getElementById('profileReceivedCount').textContent = stats.received_count;
-                document.getElementById('profileResolvedCount').textContent = stats.resolved_count;
             }
         } catch (error) {
             console.error('Error fetching profile stats:', error);

@@ -122,7 +122,8 @@ start_keep_alive()
 if __name__ == '__main__':
     print("Starting Flask app...")
     try:
-        app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
+        port = int(os.environ.get('PORT', 5000))
+        app.run(host='0.0.0.0', port=port, debug=False, threaded=True)
         print("Flask app finished.")
     except Exception as e:
         print(f"Flask failed to start: {e}")
