@@ -13,5 +13,3 @@ osmnx
 networkx
 folium
 geopy
-sentence-transformers
-faiss-cpu

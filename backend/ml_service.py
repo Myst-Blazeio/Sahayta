@@ -13,64 +13,6 @@ import os
 import pickle
 import numpy as np
 import pandas as pd
-import re
-from config import Config
-
-CRIME_KEYWORDS = [
-    'abducting', 'abduction', 'abetment', 'abetment to suicide', 'abetting', 'abetting mutiny',
-    'abuse', 'acid attack', 'adminstration', 'adulteration', 'aggravated assault', 'arson',
-    'arsonist', 'assault', 'attempt to murder', 'attempted murder', 'battery', 'bigamy',
-    'blackmail', 'bomb', 'bombing', 'breach of contract', 'bribery', 'bribing', 'burglary',
-    'causing miscarriage', 'cheating', 'child abuse', 'child pornography', 'concealment',
-    'confinement', 'conspiracy', 'corruption', 'counterfeit', 'counterfeiting',
-    'criminal breach of trust', 'criminal intimidation', 'criminal trespass', 'cruelty',
-    'culpable homicide', 'cyber fraud', 'cybercrime', 'cyberstalking', 'dacoity', 'damage',
-    'data breach', 'death by negligence', 'defamation', 'defiling', 'defiling place worship',
-    'desertion', 'disappearance of evidence', 'dishonestly', 'domestic violence', 'dowry',
-    'dowry death', 'drug trafficking', 'drunk driving', 'embezzlement', 'eve teasing', 'exciting',
-    'extorting', 'extortion', 'fabricating false evidence', 'false charge', 'false claim',
-    'false evidence', 'false personation', 'false statement', 'forgery', 'fornication',
-    'fraud','gambling','grievous hurt', 'harassment', 'hijacking', 'hit and run', 'homicide', 'hostage',
-    'housebreaking', 'human trafficking', 'hurt', 'identity fraud', 'identity theft', 'illegal weapon',
-    'impersonation', 'imputation', 'indecent', 'intimidation', 'kidnap for ransom', 'kidnapping',
-    'larceny','liquor', 'manslaughter', 'mischief', 'molestation', 'money', 'money laundering', 'murder',
-    'mutilating', 'mutilation', 'mutiny', 'narcotics','narcotics possession', 'obscene', 'obstructing public servant',
-    'obstruction', 'organized crime', 'perjury', 'phishing', 'piratical', 'poisoning', 'prostitution',
-    'public nuisance', 'rape', 'rash driving', 'receiving', 'receiving stolen property', 'restraint',
-    'rioting','ritualism', 'robbery', 'sedition', 'seducing', 'sexual assault', 'sexual harassment', 'shoplifting',
-    'smuggling', 'snatching', 'stalking', 'stole', 'tampering with evidence', 'terrorism', 'theft',
-    'threats', 'torture', 'trafficking', 'trespass', 'unauthorized access', 'unlawful assembly',
-    'unnatural', 'uttering', 'vandalism', 'vehicle theft','voyeurism', 'violence', 'weapon', 'weapons',
-    'wildlife crimes', 'wrongful', 'wrongful confinement', 'wrongful restraint'
-]
-
-class FIRPreprocessor:
-    def __init__(self, keywords):
-        self.keywords = set(k.lower() for k in keywords)
-
-    def normalize(self, text):
-        text_lower = text.lower()
-        found_keywords = [kw for kw in self.keywords if kw in text_lower]
-
-        text_clean = re.sub(r'\d{1,2}[/-]\d{1,2}[/-]\d{2,4}', '', text) # Dates
-        text_clean = re.sub(r'\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?', '', text_clean) # Times
-
-        noise_phrases = [
-            r'to the station house officer', r'subject:', r'respeceted sir',
-            r'i am writing to report', r'located at', r'a case has been registered'
-        ]
-        for phrase in noise_phrases:
-            text_clean = re.sub(phrase, '', text_clean, flags=re.IGNORECASE)
-
-        text_clean = re.sub(r'\s+', ' ', text_clean).strip()
-
-        if found_keywords:
-            unique_kws = list(set(found_keywords))
-            normalized_query = f"Crime Categories: {', '.join(unique_kws)}. Context: {text_clean}"
-        else:
-            normalized_query = text_clean
-
-        return normalized_query, found_keywords
 
 from config import Config
 
@@ -103,10 +45,10 @@ class MLService:
             return
         self._ready = True          # set early to prevent re-entrant calls
         self.crime_model  = None
-        self.bns_model    = None
-        self.bns_index    = None
+        self.bns_vectorizer = None
+        self.bns_matrix   = None
         self.bns_df       = None
-        self.preprocessor = FIRPreprocessor(CRIME_KEYWORDS)
+        self.bns_text_col = None
         self._load_models()
 
     def _load_models(self):
@@ -124,30 +66,62 @@ class MLService:
         except Exception as e:
             print(f"Error loading crime model: {e}")
 
-        # ── BNS FAISS Index using SentenceTransformer ────────────────────────
+        # ── BNS TF-IDF index ─────────────────────────────────────────────────
         try:
-            import faiss
-            from sentence_transformers import SentenceTransformer
-            
-            bns_assets_path = Config.BNS_ASSETS_PATH
-            if os.path.exists(bns_assets_path):
-                with open(bns_assets_path, 'rb') as f:
-                    assets = pickle.load(f)
-                
-                self.bns_df = assets['df']
-                embeddings = assets['embeddings']
-                
-                dimension = embeddings.shape[1]
-                self.bns_index = faiss.IndexFlatL2(dimension)
-                self.bns_index.add(embeddings.astype(np.float32))
-                
-                print("Loading SentenceTransformer model 'all-MiniLM-L6-v2'...")
-                self.bns_model = SentenceTransformer('all-MiniLM-L6-v2')
-                print(f"BNS FAISS index ready ({len(self.bns_df)} entries, dim {dimension}).")
+            tfidf_path = Config.BNS_TFIDF_PATH
+            legacy_path = Config.BNS_ASSETS_PATH
+
+            if os.path.exists(tfidf_path):
+                # Preferred: pre-built lightweight index
+                with open(tfidf_path, 'rb') as f:
+                    payload = pickle.load(f)
+                self.bns_vectorizer = payload['vectorizer']
+                self.bns_matrix     = payload['matrix']
+                self.bns_df         = payload['df']
+                self.bns_text_col   = payload.get('text_col', 'description')
+                print(f"BNS TF-IDF index loaded ({self.bns_matrix.shape[0]} entries).")
+
+            elif os.path.exists(legacy_path):
+                # Fallback: build TF-IDF on-the-fly from the old assets
+                print("bns_tfidf.pkl not found — building TF-IDF from bns_assets.pkl ...")
+                self._build_tfidf_from_legacy(legacy_path)
             else:
-                print(f"Warning: BNS assets not found at {bns_assets_path}")
+                print("Warning: no BNS assets found.")
         except Exception as e:
-            print(f"Error loading BNS SentenceTransformer/FAISS: {e}")
+            print(f"Error loading BNS assets: {e}")
+
+    def _build_tfidf_from_legacy(self, legacy_path: str):
+        """Build TF-IDF index at runtime from bns_assets.pkl (fallback)."""
+        from sklearn.feature_extraction.text import TfidfVectorizer
+
+        with open(legacy_path, 'rb') as f:
+            assets = pickle.load(f)
+
+        df = assets['df']
+
+        # Auto-detect text column
+        text_col = None
+        for candidate in ['description', 'Description', 'offense', 'Offense',
+                          'section_title', 'title', 'Title', 'text']:
+            if candidate in df.columns:
+                text_col = candidate
+                break
+        if text_col is None:
+            str_cols = [c for c in df.columns if df[c].dtype == object]
+            df['_combined_text'] = df[str_cols].fillna('').agg(' '.join, axis=1)
+            text_col = '_combined_text'
+
+        corpus = df[text_col].fillna('').astype(str).tolist()
+        vectorizer = TfidfVectorizer(ngram_range=(1, 2), max_features=20_000,
+                                     sublinear_tf=True, strip_accents='unicode',
+                                     min_df=1)
+        matrix = vectorizer.fit_transform(corpus)
+
+        self.bns_vectorizer = vectorizer
+        self.bns_matrix     = matrix
+        self.bns_df         = df
+        self.bns_text_col   = text_col
+        print(f"BNS TF-IDF built on-the-fly ({matrix.shape[0]} entries).")
 
     # ── Predictions ───────────────────────────────────────────────────────────
 
@@ -165,41 +139,26 @@ class MLService:
 
     def predict_bns(self, query: str, k: int = 5):
         self._ensure_loaded()
-        if self.bns_model is None or self.bns_index is None or self.bns_df is None:
+        if self.bns_vectorizer is None or self.bns_matrix is None or self.bns_df is None:
             return []
         try:
-            # Normalize prompt using the FIRPreprocessor
-            normalized_query, detected_crimes = self.preprocessor.normalize(query)
-            
-            # Encode query and search FAISS
-            query_vec = self.bns_model.encode([normalized_query]).astype(np.float32)
-            distances, indices = self.bns_index.search(query_vec, k)
-            
-            results = []
-            max_dist = distances[0][-1] if len(distances[0]) > 0 and distances[0][-1] > 0 else 1.0
-            
-            for rank, (dist, idx) in enumerate(zip(distances[0], indices[0]), start=1):
-                if idx >= len(self.bns_df):
-                    continue
-                    
-                item_dict = self.bns_df.iloc[idx].to_dict()
-                clean = {}
-                for key, val in item_dict.items():
-                    if pd.isna(val):
-                        clean[key] = None
-                    elif hasattr(val, 'item'): 
-                        clean[key] = val.item() # converts numpy float/int to python types
-                    else:
-                        clean[key] = val
+            from sklearn.metrics.pairwise import cosine_similarity
 
-                # We approximate similarity based on L2 distance.
-                # Smaller distance = higher similarity
-                # Max dist is the farthest neighbor returned.
-                sim_score = max(0.0, 1.0 - (float(dist) / (max_dist * 1.5 + 1e-5))) 
-                
-                clean['similarity'] = float(round(sim_score, 4))
-                clean['distance']   = float(round(float(dist), 4))
-                clean['rank']       = int(rank)
+            query_vec = self.bns_vectorizer.transform([query])
+            scores    = cosine_similarity(query_vec, self.bns_matrix).flatten()
+            top_k     = int(min(k, len(scores)))
+            top_idx   = scores.argsort()[-top_k:][::-1]  # highest first
+
+            results = []
+            for rank, idx in enumerate(top_idx, start=1):
+                item_dict = self.bns_df.iloc[idx].to_dict()
+                clean = {key: (val if pd.notna(val) else None)
+                         for key, val in item_dict.items()}
+
+                similarity = float(scores[idx])
+                clean['similarity'] = similarity
+                clean['distance']   = 1.0 - similarity   # kept for API compat
+                clean['rank']       = rank
 
                 # Normalise field names for the frontend
                 if 'section' not in clean and 'Section' in clean:
@@ -208,6 +167,20 @@ class MLService:
                     clean['description'] = clean['Description']
 
                 results.append(clean)
+
+            # ── Normalize scores for display ──────────────────────────────
+            # Raw TF-IDF cosine is naturally low (0.05–0.15).
+            # Remap so top result ≈ 90% and others scale proportionally,
+            # with a floor of 40% for any result that made the top-k list.
+            if results:
+                top_sim = results[0]['similarity']   # already sorted highest→first
+                for r in results:
+                    if top_sim > 0:
+                        normalized = 0.40 + (r['similarity'] / top_sim) * 0.50
+                    else:
+                        normalized = 0.40
+                    r['similarity'] = round(min(1.0, normalized), 4)
+                    r['distance']   = round(1.0 - r['similarity'], 4)
 
             return results
         except Exception as e:
