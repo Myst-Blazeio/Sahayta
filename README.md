@@ -34,7 +34,7 @@
 
 ## Overview
 
-**Sahayta** (Hindi: সহায়তা — _assistance_) is a Final Year Project that modernises FIR handling in Indian police stations through AI/ML automation.
+**Sahayta** (Bengali: সহায়তা — _assistance_) is a Final Year Project that modernises FIR handling in Indian police stations through AI/ML automation.
 
 Citizens can file FIRs online. The backend **automatically suggests relevant BNS (Bharatiya Nyaya Sanhita) sections** for each report using a BM25 semantic search engine powered by FIR keyword preprocessing and re-ranking. Police officers access a server-rendered dashboard to manage reports, view crime analytics, and use AI-powered safe route navigation.
 
