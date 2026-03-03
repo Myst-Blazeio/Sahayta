@@ -418,7 +418,7 @@ In production (GitHub Pages), set `VITE_API_BASE_URL` to your Render backend URL
    ```
 4. Set **Start Command:**
    ```bash
-   cd backend && gunicorn app:app
+   gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 4
    ```
 5. Add environment variables in the Render dashboard (see [Environment Variables](#environment-variables))
 
