@@ -1,38 +1,26 @@
 
 import sys
 sys.stdout.reconfigure(line_buffering=True)
-print("APP.PY STARTING...")
 
-
-print("Importing flask...")
 from flask import Flask, request, jsonify, redirect, url_for
-print("Importing flask_cors...")
 from flask_cors import CORS
-print("Importing datetime...")
 from datetime import timedelta
-print("Importing dotenv...")
 from dotenv import load_dotenv
 import os
 import threading
 import time
 import requests
 
-print("Importing custom modules...")
 from config import config
-print("Importing MLService class...")
 from ml_service import MLService
 
 load_dotenv()
 
 app = Flask(__name__)
-# Enable CORS
 CORS(app)
 
-# Check for .env file
 if not os.path.exists('.env'):
-    print("\n\033[93mWARNING: .env file not found. Using default/environment variables.\033[0m")
-    print("\033[93mIn production, ensure all secret keys are set securely.\033[0m\n")
-
+    print("WARNING: .env file not found. Using default/environment variables.")
 
 # Load Config
 env = os.environ.get('FLASK_ENV', 'development')
@@ -50,18 +38,11 @@ app.config['JWT_SECRET_KEY'] = config[env].JWT_SECRET_KEY
 jwt = JWTManager(app)
 
 # Register Blueprints
-print("Importing auth_routes...")
 from routes.auth_routes import auth_bp
-print("Importing fir_routes...")
 from routes.fir_routes import fir_bp
-print("Importing intelligence_routes...")
 from routes.intelligence_routes import intelligence_bp
-print("Importing police_routes...")
 from routes.police_routes import police_bp
-
-print("Importing police_views...")
 from routes.police_views import police_views
-print("Importing safe_route_bp...")
 from routes.safe_route_bp import safe_route_bp
 
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
