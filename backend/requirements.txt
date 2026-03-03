@@ -6,6 +6,7 @@ flask-jwt-extended
 numpy
 pandas
 scikit-learn
+rank-bm25
 deep-translator
 requests
 gunicorn
