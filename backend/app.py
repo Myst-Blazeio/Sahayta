@@ -3,7 +3,7 @@ import sys
 sys.stdout.reconfigure(line_buffering=True)
 
 from flask import Flask, request, jsonify, redirect, url_for
-from flask_cors import CORS
+
 from datetime import timedelta
 from dotenv import load_dotenv
 import os
@@ -16,36 +16,34 @@ from ml_service import MLService
 
 load_dotenv()
 
-ALLOWED_ORIGINS = [
-    "https://myst-blazeio.github.io",
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
-
 app = Flask(__name__)
 
-# flask-cors 6.x + Flask 3.x: after_request isn't called for 405s that Flask
-# returns for OPTIONS preflight requests. Fix: intercept OPTIONS in before_request.
+# Allow ALL origins — echo the request Origin back so credentials work
+# (W3C spec forbids Access-Control-Allow-Origin: * with credentials: true)
 from flask import make_response
 
 @app.before_request
-def handle_options():
+def handle_cors_preflight():
+    """Intercept OPTIONS before Flask routing returns 405 (Flask 3.x + flask-cors 6.x fix)."""
     if request.method == "OPTIONS":
-        origin = request.headers.get("Origin", "")
-        if origin in ALLOWED_ORIGINS:
-            resp = make_response("", 204)
-            resp.headers["Access-Control-Allow-Origin"] = origin
-            resp.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS"
-            resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
-            resp.headers["Access-Control-Allow-Credentials"] = "true"
-            resp.headers["Access-Control-Max-Age"] = "86400"
-            return resp
+        origin = request.headers.get("Origin", "*")
+        resp = make_response("", 204)
+        resp.headers["Access-Control-Allow-Origin"] = origin
+        resp.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+        resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
+        resp.headers["Access-Control-Allow-Credentials"] = "true"
+        resp.headers["Access-Control-Max-Age"] = "86400"
+        return resp
 
-# Also apply flask-cors for non-OPTIONS requests (adds headers via after_request)
-CORS(app,
-     origins=ALLOWED_ORIGINS,
-     supports_credentials=True
-)
+@app.after_request
+def add_cors_headers(resp):
+    """Add CORS headers to every non-OPTIONS response."""
+    origin = request.headers.get("Origin", "*")
+    resp.headers["Access-Control-Allow-Origin"] = origin
+    resp.headers["Access-Control-Allow-Credentials"] = "true"
+    resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
+    return resp
+
 
 if not os.path.exists('.env'):
     print("WARNING: .env file not found. Using default/environment variables.")
