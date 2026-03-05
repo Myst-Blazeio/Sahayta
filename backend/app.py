@@ -16,12 +16,34 @@ from ml_service import MLService
 
 load_dotenv()
 
+ALLOWED_ORIGINS = [
+    "https://myst-blazeio.github.io",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
 app = Flask(__name__)
 
-CORS(app, 
-     origins=["https://myst-blazeio.github.io", "http://localhost:5173", "http://127.0.0.1:5173"],
-     methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-     allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
+# flask-cors 6.x + Flask 3.x: after_request isn't called for 405s that Flask
+# returns for OPTIONS preflight requests. Fix: intercept OPTIONS in before_request.
+from flask import make_response
+
+@app.before_request
+def handle_options():
+    if request.method == "OPTIONS":
+        origin = request.headers.get("Origin", "")
+        if origin in ALLOWED_ORIGINS:
+            resp = make_response("", 204)
+            resp.headers["Access-Control-Allow-Origin"] = origin
+            resp.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+            resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
+            resp.headers["Access-Control-Allow-Credentials"] = "true"
+            resp.headers["Access-Control-Max-Age"] = "86400"
+            return resp
+
+# Also apply flask-cors for non-OPTIONS requests (adds headers via after_request)
+CORS(app,
+     origins=ALLOWED_ORIGINS,
      supports_credentials=True
 )
 
