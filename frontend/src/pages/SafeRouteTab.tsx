@@ -11,6 +11,19 @@ import {
   Bike,
   Footprints,
 } from "lucide-react";
+import { MapContainer, TileLayer, Marker, Polyline, useMap } from "react-leaflet";
+import L from "leaflet";
+import HeatmapLayer from "../components/HeatmapLayer";
+
+// Fix generic leaflet icon
+import icon from "leaflet/dist/images/marker-icon.png";
+import iconShadow from "leaflet/dist/images/marker-shadow.png";
+const DefaultIcon = L.icon({
+  iconUrl: icon,
+  shadowUrl: iconShadow,
+  iconAnchor: [12, 41],
+});
+L.Marker.prototype.options.icon = DefaultIcon;
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -28,6 +41,29 @@ interface RouteStats {
   time_efficiency: number;
   high_risk_zones: number;
   normalized_risk: number;
+}
+
+// Map Auto-Updater Component
+function MapUpdater({ startPos, endPos, routeCoords }: { 
+  startPos: [number, number] | null; 
+  endPos: [number, number] | null; 
+  routeCoords: [number, number][] 
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (routeCoords && routeCoords.length > 0) {
+      const bounds = L.latLngBounds(routeCoords);
+      map.fitBounds(bounds, { padding: [50, 50] });
+    } else if (startPos && endPos) {
+      const bounds = L.latLngBounds([startPos, endPos]);
+      map.fitBounds(bounds, { padding: [50, 50] });
+    } else if (startPos) {
+      map.setView(startPos, 14);
+    }
+  }, [map, startPos, endPos, routeCoords]);
+
+  return null;
 }
 
 const SafeRouteTab: React.FC = () => {
@@ -54,9 +90,8 @@ const SafeRouteTab: React.FC = () => {
 
   // Results
   const [stats, setStats] = useState<RouteStats | null>(null);
-  const [mapUrl, setMapUrl] = useState<string>(
-    `${API_BASE_URL}/api/safe-route/map?start_lat=22.5726&start_lng=88.3639&end_lat=22.5726&end_lng=88.3639&type=${routeType}&mode=${transportMode}&_t=${Date.now()}`,
-  );
+  const [routeCoords, setRouteCoords] = useState<[number, number][]>([]);
+  const [crimePoints, setCrimePoints] = useState<[number, number, number][]>([]);
 
   // Click outside handler logic
   const startRef = useRef<HTMLDivElement>(null);
@@ -71,6 +106,14 @@ const SafeRouteTab: React.FC = () => {
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Fetch initial base crime points to show a default Heatmap if no route generated yet
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/safe-route/crime-predictions`)
+      .then(res => res.json())
+      .then(data => setCrimePoints(data))
+      .catch(err => console.error("Initial heatmap load failed", err));
   }, []);
 
   // Debounced Autocomplete for Start
@@ -131,8 +174,8 @@ const SafeRouteTab: React.FC = () => {
 
     setLoading(true);
     setError(null);
-    // Clear old state to re-render fresh
     setStats(null);
+    setRouteCoords([]);
 
     try {
       let finalStartLat = startPos?.[0];
@@ -177,12 +220,17 @@ const SafeRouteTab: React.FC = () => {
       const maxLng = Math.max(finalStartLng, finalEndLng) + 0.05;
       const bbox = `${minLat},${minLng},${maxLat},${maxLng}`;
 
-      // Update Map First (visual feedback)
-      setMapUrl(
-        `${API_BASE_URL}/api/safe-route/map?start_lat=${finalStartLat}&start_lng=${finalStartLng}&end_lat=${finalEndLat}&end_lng=${finalEndLng}&type=${routeType}&bbox=${bbox}&mode=${transportMode}&_t=${Date.now()}`,
-      );
+      // Fetch Crime Data for Heatmap early
+      try {
+        const crimeRes = await fetch(`${API_BASE_URL}/api/safe-route/crime-predictions?bbox=${bbox}`);
+        if (crimeRes.ok) {
+           const cData = await crimeRes.json();
+           setCrimePoints(cData);
+        }
+      } catch (e) { console.error("Could not load heatmap", e); }
 
-      // Fetch dynamic stats
+
+      // Fetch dynamic stats and route geometry from backend
       const url = `${API_BASE_URL}/api/safe-route/?start_lat=${finalStartLat}&start_lng=${finalStartLng}&end_lat=${finalEndLat}&end_lng=${finalEndLng}&type=${routeType}&mode=${transportMode}`;
       const res = await fetch(url);
 
@@ -191,6 +239,14 @@ const SafeRouteTab: React.FC = () => {
       if (data.error) throw new Error(data.error);
 
       setStats(data.properties);
+
+      // Extract coordinates from LineString. 
+      // OSRM returns [lng, lat], Leaflet needs [lat, lng]
+      if (data.geometry && data.geometry.coordinates) {
+        const coords = data.geometry.coordinates.map((p: any) => [p[1], p[0]] as [number, number]);
+        setRouteCoords(coords);
+      }
+      
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Error calculating route");
@@ -219,14 +275,6 @@ const SafeRouteTab: React.FC = () => {
       async (position) => {
         const { latitude, longitude } = position.coords;
         setStartPos([latitude, longitude]);
-
-        // Instantly update the Map to zoom to the user's new location
-        // Even if End Location isn't set, we pass the start location to both to center it
-        const endL = endPos?.[0] || latitude;
-        const endLn = endPos?.[1] || longitude;
-        setMapUrl(
-          `${API_BASE_URL}/api/safe-route/map?start_lat=${latitude}&start_lng=${longitude}&end_lat=${endL}&end_lng=${endLn}&type=${routeType}&mode=${transportMode}&_t=${Date.now()}`,
-        );
 
         try {
           // Reverse geocode to get a readable address
@@ -523,19 +571,33 @@ const SafeRouteTab: React.FC = () => {
       </div>
 
       {/* Map Area */}
-      <div className="w-full lg:w-2/3 border rounded-xl overflow-hidden shadow-sm relative z-0 bg-gray-50">
-        {/* Embedded Folium Map */}
-        <iframe
-          src={mapUrl}
-          className="w-full h-full border-0 transition-opacity duration-300"
-          style={{ opacity: loading ? 0.4 : 1 }}
-          title="Safe Route Map"
-          sandbox="allow-scripts allow-same-origin allow-popups"
-        />
+      <div className="w-full lg:w-2/3 border rounded-xl overflow-hidden shadow-sm relative z-0 bg-gray-50 flex flex-col">
+        <MapContainer 
+          center={[22.5726, 88.3639]} 
+          zoom={13} 
+          style={{ height: "100%", width: "100%", zIndex: 0 }}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://carto.com/">CartoDB</a>'
+            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+          />
+          {crimePoints.length > 0 && <HeatmapLayer points={crimePoints} />}
+          {startPos && <Marker position={startPos} />}
+          {endPos && <Marker position={endPos} />}
+          {routeCoords.length > 0 && (
+             <Polyline 
+               positions={routeCoords} 
+               color={routeType === "safe" ? "#22c55e" : "#3b82f6"} 
+               weight={6} 
+               opacity={0.8} 
+             />
+          )}
+          <MapUpdater startPos={startPos} endPos={endPos} routeCoords={routeCoords} />
+        </MapContainer>
 
         {/* Loading overlay over map */}
         {loading && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
             <div className="bg-white/90 backdrop-blur px-6 py-4 rounded-full shadow-2xl flex items-center gap-3 font-bold text-blue-600 animate-pulse">
               <span className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full"></span>
               Rebuilding Prediction Map...

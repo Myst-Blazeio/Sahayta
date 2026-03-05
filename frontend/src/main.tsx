@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./index.css";
 import { HashRouter } from "react-router-dom";
+import "leaflet/dist/leaflet.css";
 
 
 import { SnackbarProvider } from "./context/SnackbarContext";
