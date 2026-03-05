@@ -23,6 +23,7 @@
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
 - [Architecture](#architecture)
+- [Performance Optimizations](#performance-optimizations)
 - [API Reference](#api-reference)
 - [ML Models](#ml-models)
 - [Getting Started (Local)](#getting-started-local)
@@ -112,7 +113,7 @@ Key achievements over a traditional paper-based system:
 | ML — BNS Search       | BM25Okapi (rank-bm25) + TF-IDF fallback (scikit-learn) |
 | ML — Crime Prediction | scikit-learn Random Forest                             |
 | Translation           | Deep Translator (Google Translate)                     |
-| Maps/Routing          | OSRM public API + OSMnx                                |
+| Maps/Routing          | OSRM Public API + Nominatim API                        |
 | CORS                  | Flask-CORS                                             |
 | Production Server     | Gunicorn                                               |
 
@@ -210,8 +211,8 @@ Sahayta/
 │  • Safe Routes      │                      │         │                                 │
 │                     │                      │  ┌──────▼──────────────────────────────┐ │
 └─────────────────────┘                      │  │         ml_service.py (Singleton)    │ │
-                                             │  │  BM25 search + FIRPreprocessor      │ │
-                                             │  │  Crime Prediction (Random Forest)   │ │
+                                             │  │  Lazy Loaded BM25 / TF-IDF Search   │ │
+                                             │  │  Lazy Loaded RF Crime Predictor     │ │
                                              │  └──────────────────────────────────────┘ │
                                              │                     │                     │
                                              │  ┌──────────────────▼──────────────────┐ │
@@ -264,10 +265,28 @@ All endpoints require `Authorization: Bearer <JWT>` unless marked public.
 
 ### Safe Route (`/api/safe-route`)
 
-| Method | Endpoint       | Auth   | Description                     |
-| ------ | -------------- | ------ | ------------------------------- |
-| POST   | `/route`       | Public | OSRM route + crime risk scoring |
-| GET    | `/crime-zones` | Public | Crime risk zone GeoJSON         |
+| Method | Endpoint             | Auth   | Description                       |
+| ------ | -------------------- | ------ | --------------------------------- |
+| GET    | `/`                  | Public | OSRM route + crime risk scoring   |
+| GET    | `/geocode`           | Public | Geocode an address via Nominatim  |
+| GET    | `/reverse-geocode`   | Public | Reverse geocode a lat/lng         |
+| GET    | `/autocomplete`      | Public | Address suggestions via Nominatim |
+| GET    | `/crime-predictions` | Public | Raw crime risk points for a bbox  |
+
+---
+
+## Performance Optimizations
+
+Sahayta is deployed on Render's **free tier (512 MB RAM, 1 CPU)**. The following architectural decisions keep the backend within those limits:
+
+| Optimization                      | Details                                                                                                                                                                                                                                                      |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Removed `osmnx` / `networkx`**  | The old implementation loaded a 40 MB `kolkata_drive_graph.graphml` into RAM and computed routes using NetworkX, consuming 300–350 MB at idle. This has been completely removed.                                                                             |
+| **OSRM API for routing**          | Route calculations are now delegated to the free public [OSRM API](http://router.project-osrm.org). The backend simply makes an outbound HTTP request, uses zero extra RAM, and combines the returned route geometry with local crime data for risk scoring. |
+| **Nominatim API for geocoding**   | Replaced `geopy` with direct `requests` calls to the free [Nominatim API](https://nominatim.openstreetmap.org), eliminating another unused dependency.                                                                                                       |
+| **ML model lazy loading**         | `ml_service.py` previously loaded both the BNS text index (~120 MB) and Crime Prediction model (~150 MB) simultaneously on the first ML request. Each model now loads independently and only when its specific endpoint is called.                           |
+| **Aggressive garbage collection** | `gc.collect()` is called after each model prediction and after loading, ensuring Pandas DataFrames and intermediate NumPy arrays are released immediately.                                                                                                   |
+| **Frontend map rendering**        | The map was previously an `<iframe>` loading a server-generated Folium HTML file per request. It is now rendered entirely client-side using **React-Leaflet** + **Leaflet.heat**, with the backend only serving a lightweight JSON array of crime points.    |
 
 ---
 
@@ -308,6 +327,8 @@ Top-k BNS Sections (with similarity scores)
 - **Input:** `ward` (int), `year` (int), `month` (int)
 - **Output:** Predicted crime count for that ward/month combination
 - **Training data:** `scripts/crime_kolkata.csv` — Kolkata ward crime dataset
+
+> ⚡ **Memory Optimization:** Both the BNS text index and the Crime Prediction model are strictly **lazy-loaded** and proactively garbage collected. This prevents Out-Of-Memory (OOM) crashes on the 512MB RAM Render free tier.
 
 ---
 
