@@ -2,7 +2,7 @@
 import sys
 sys.stdout.reconfigure(line_buffering=True)
 
-from flask import Flask, request, jsonify, redirect, url_for, make_response
+from flask import Flask, request, jsonify, redirect, url_for
 from flask_cors import CORS
 
 from datetime import timedelta
@@ -19,25 +19,8 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# Allow ALL origins via flask_cors.
-# supports_credentials=True causes flask-cors to echo the request Origin
-# header back instead of returning '*' (required when credentials are used).
+# Allow ALL origins via flask_cors (all origins, credentials supported)
 CORS(app, supports_credentials=True)
-
-# Flask 3.x returns 405 for OPTIONS requests before after_request fires,
-# so flask-cors never gets to add headers on preflights. Fix: intercept
-# OPTIONS in before_request and return 204 ourselves.
-@app.before_request
-def handle_cors_preflight():
-    if request.method == "OPTIONS":
-        origin = request.headers.get("Origin", "*")
-        resp = make_response("", 204)
-        resp.headers["Access-Control-Allow-Origin"] = origin
-        resp.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS"
-        resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
-        resp.headers["Access-Control-Allow-Credentials"] = "true"
-        resp.headers["Access-Control-Max-Age"] = "86400"
-        return resp
 
 
 if not os.path.exists('.env'):
