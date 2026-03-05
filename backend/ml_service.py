@@ -126,26 +126,13 @@ class MLService:
     def initialized(self):
         return self._ready
 
-    def _ensure_loaded(self):
-        if self._ready:
+    def _ensure_crime_loaded(self):
+        if self._ready and self.crime_model is not None:
             return
+            
         self._ready = True
-        self.crime_model    = None
-        # BM25 (primary)
-        self.bns_bm25       = None
-        self.bns_bm25_df    = None
-        self.bns_token_corp = None
-        # TF-IDF (fallback)
-        self.bns_vectorizer = None
-        self.bns_matrix     = None
-        self.bns_df         = None
-        self.bns_text_col   = None
-        self._load_models()
-
-    def _load_models(self):
-        print("MLService: loading models (first request) ...")
-
-        # ── Crime prediction ──────────────────────────────────────────────────
+        import gc
+        print("MLService: loading crime model on-demand ...")
         try:
             path = Config.CRIME_MODEL_PATH
             if os.path.exists(path):
@@ -156,8 +143,17 @@ class MLService:
                 print(f"Warning: crime model not found at {path}")
         except Exception as e:
             print(f"Error loading crime model: {e}")
+        gc.collect()
 
-        # ── BM25 index (preferred) ────────────────────────────────────────────
+    def _ensure_bns_loaded(self):
+        if self._ready and (self.bns_bm25 is not None or self.bns_vectorizer is not None):
+            return
+            
+        self._ready = True
+        import gc
+        print("MLService: loading BNS model on-demand ...")
+        
+        # Try BM25 first
         try:
             bm25_path = Config.BNS_BM25_PATH
             if os.path.exists(bm25_path):
@@ -166,19 +162,16 @@ class MLService:
                 self.bns_bm25       = payload['bm25']
                 self.bns_bm25_df    = payload['df']
                 self.bns_token_corp = payload['token_corpus']
-                n = len(self.bns_bm25_df)
-                print(f"BNS BM25 index loaded ({n} entries).")
-                return          # BM25 loaded — skip TF-IDF load entirely
-            else:
-                print("bns_bm25.pkl not found — will use TF-IDF fallback.")
+                print("BNS BM25 index loaded.")
+                gc.collect()
+                return
         except Exception as e:
             print(f"Error loading BM25: {e}")
 
-        # ── TF-IDF fallback ───────────────────────────────────────────────────
+        # Fallback to TF-IDF
         try:
             tfidf_path  = Config.BNS_TFIDF_PATH
             legacy_path = Config.BNS_ASSETS_PATH
-
             if os.path.exists(tfidf_path):
                 with open(tfidf_path, 'rb') as f:
                     payload = pickle.load(f)
@@ -186,14 +179,16 @@ class MLService:
                 self.bns_matrix     = payload['matrix']
                 self.bns_df         = payload['df']
                 self.bns_text_col   = payload.get('text_col', 'Description')
-                print(f"BNS TF-IDF index loaded ({self.bns_matrix.shape[0]} entries).")
+                print("BNS TF-IDF index loaded.")
             elif os.path.exists(legacy_path):
                 print("Building TF-IDF from bns_assets.pkl ...")
                 self._build_tfidf_from_legacy(legacy_path)
-            else:
-                print("Warning: no BNS assets found.")
         except Exception as e:
             print(f"Error loading BNS TF-IDF: {e}")
+            
+        gc.collect()
+
+    # Removed monolithic _load_models
 
     def _build_tfidf_from_legacy(self, legacy_path: str):
         from sklearn.feature_extraction.text import TfidfVectorizer
@@ -220,23 +215,27 @@ class MLService:
     # ── Predictions ───────────────────────────────────────────────────────────
 
     def predict_crime(self, ward, year, month):
-        self._ensure_loaded()
-        if self.crime_model is None:
+        self._ensure_crime_loaded()
+        if not hasattr(self, 'crime_model') or self.crime_model is None:
             return None
         try:
             input_df = pd.DataFrame([[ward, year, month]],
                                     columns=['Ward', 'Year', 'Month'])
-            return round(self.crime_model.predict(input_df)[0])
+            import gc
+            result = round(self.crime_model.predict(input_df)[0])
+            del input_df
+            gc.collect()
+            return result
         except Exception as e:
             print(f"Crime prediction error: {e}")
             return None
 
     def predict_bns(self, query: str, k: int = 5):
-        self._ensure_loaded()
+        self._ensure_bns_loaded()
 
-        if self.bns_bm25 is not None:
+        if hasattr(self, 'bns_bm25') and self.bns_bm25 is not None:
             return self._predict_bns_bm25(query, k)
-        elif self.bns_vectorizer is not None:
+        elif hasattr(self, 'bns_vectorizer') and self.bns_vectorizer is not None:
             return self._predict_bns_tfidf(query, k)
         return []
 
