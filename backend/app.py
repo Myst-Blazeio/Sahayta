@@ -17,7 +17,13 @@ from ml_service import MLService
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
+
+CORS(app, 
+     origins=["https://myst-blazeio.github.io", "http://localhost:5173", "http://127.0.0.1:5173"],
+     methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+     allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
+     supports_credentials=True
+)
 
 if not os.path.exists('.env'):
     print("WARNING: .env file not found. Using default/environment variables.")
