@@ -418,8 +418,9 @@ In production (GitHub Pages), set `VITE_API_BASE_URL` to your Render backend URL
    ```
 4. Set **Start Command:**
    ```bash
-   gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 4
+   gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --preload --timeout 120
    ```
+   > ⚠️ `--preload` is critical: it loads ML models once in the Gunicorn master and shares memory with workers via copy-on-write, preventing OOM crashes on the Render free tier (512 MB RAM).
 5. Add environment variables in the Render dashboard (see [Environment Variables](#environment-variables))
 
 ### Frontend → GitHub Pages
