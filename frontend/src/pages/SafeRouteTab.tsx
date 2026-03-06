@@ -11,6 +11,9 @@ import {
   Bike,
   Footprints,
   CheckCircle2,
+  Crosshair,
+  ShieldCheck,
+  Activity
 } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
@@ -53,13 +56,13 @@ const formatETA  = (s: number) => {
   return `${mins} min`;
 };
 const riskColor = (lvl: string) =>
-  lvl === "Low" ? "text-green-600" : lvl === "Medium" ? "text-yellow-600" : "text-red-600";
+  lvl === "Low" ? "text-emerald-500" : lvl === "Medium" ? "text-amber-500" : "text-rose-500";
 const scoreBg = (score: number) =>
-  score > 80 ? "rgba(34,197,94,0.1)" : score > 60 ? "rgba(234,179,8,0.1)" : "rgba(239,68,68,0.1)";
+  score > 80 ? "rgba(16,185,129,0.15)" : score > 60 ? "rgba(245,158,11,0.15)" : "rgba(244,63,94,0.15)";
 const scoreBorder = (score: number) =>
-  score > 80 ? "rgba(34,197,94,0.3)" : score > 60 ? "rgba(234,179,8,0.3)" : "rgba(239,68,68,0.3)";
+  score > 80 ? "rgba(16,185,129,0.4)" : score > 60 ? "rgba(245,158,11,0.4)" : "rgba(244,63,94,0.4)";
 const scoreHex = (score: number) =>
-  score > 80 ? "#16a34a" : score > 60 ? "#ca8a04" : "#dc2626";
+  score > 80 ? "#10b981" : score > 60 ? "#f59e0b" : "#f43f5e";
 
 // ── Map auto-bounds component ─────────────────────────────────────────────────
 function MapBounds({ coords }: { coords: [number, number][] }) {
@@ -70,76 +73,6 @@ function MapBounds({ coords }: { coords: [number, number][] }) {
     }
   }, [map, coords]);
   return null;
-}
-
-// ── Route stats mini-card ────────────────────────────────────────────────────
-function RouteCard({
-  label, color, stats, active, onClick,
-}: {
-  label: string; color: string; stats: RouteStats; active: boolean; onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex-1 rounded-xl border-2 p-4 text-left transition-all ${
-        active ? `border-${color}-500 shadow-md bg-${color === "green" ? "green" : "blue"}-50/50` : "border-gray-200 hover:border-gray-300 bg-white"
-      }`}
-      style={{ borderColor: active ? (color === "green" ? "#22c55e" : "#3b82f6") : undefined }}
-    >
-      <div className="flex items-center justify-between mb-3">
-        <span
-          className="text-xs font-black uppercase tracking-widest px-2 py-0.5 rounded-full text-white"
-          style={{ backgroundColor: color === "green" ? "#22c55e" : "#3b82f6" }}
-        >
-          {label}
-        </span>
-        {active && <CheckCircle2 size={16} style={{ color: color === "green" ? "#22c55e" : "#3b82f6" }} />}
-      </div>
-
-      <div className="grid grid-cols-2 gap-2 mb-3">
-        <div>
-          <div className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">ETA</div>
-          <div className="text-lg font-black text-gray-900 flex items-center gap-1">
-            <Clock size={14} className="text-blue-500 flex-shrink-0" />
-            {formatETA(stats.duration)}
-          </div>
-        </div>
-        <div>
-          <div className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Distance</div>
-          <div className="text-lg font-black text-gray-900 flex items-center gap-1">
-            <Navigation size={14} className="text-indigo-400 flex-shrink-0" />
-            {formatDist(stats.distance)}
-          </div>
-        </div>
-      </div>
-
-      <div
-        className="rounded-lg p-3 flex items-center justify-between"
-        style={{ backgroundColor: scoreBg(stats.safety_score), border: `1px solid ${scoreBorder(stats.safety_score)}` }}
-      >
-        <div>
-          <div className="text-[9px] font-black uppercase tracking-widest text-gray-500 mb-0.5">Risk</div>
-          <div className={`text-sm font-black flex items-center gap-1 ${riskColor(stats.risk_level)}`}>
-            {stats.risk_level === "Low" ? <Shield size={14} /> : <AlertTriangle size={14} />}
-            {stats.risk_level}
-          </div>
-        </div>
-        <div className="text-right">
-          <div className="text-[9px] font-black uppercase tracking-widest text-gray-500 mb-0.5">Safety</div>
-          <span className="text-2xl font-black" style={{ color: scoreHex(stats.safety_score) }}>
-            {stats.safety_score}
-            <span className="text-xs text-gray-400 font-bold">/100</span>
-          </span>
-        </div>
-      </div>
-
-      {stats.high_risk_zones > 0 && (
-        <div className="mt-2 flex items-center gap-1 text-xs text-red-600 font-bold">
-          <AlertTriangle size={11} /> {stats.high_risk_zones} high-risk zone{stats.high_risk_zones > 1 ? "s" : ""} crossed
-        </div>
-      )}
-    </button>
-  );
 }
 
 // ── Main component ───────────────────────────────────────────────────────────
@@ -159,7 +92,6 @@ const SafeRouteTab: React.FC = () => {
   const [error,   setError]   = useState<string | null>(null);
 
   const [compareResult, setCompareResult] = useState<CompareResult | null>(null);
-  const [activeRoute,   setActiveRoute]   = useState<"safe"|"fastest">("safe");
   const [crimePoints,   setCrimePoints]   = useState<[number, number, number][]>([]);
 
   const startRef = useRef<HTMLDivElement>(null);
@@ -226,7 +158,6 @@ const SafeRouteTab: React.FC = () => {
 
       if (!sLat || !sLng || !eLat || !eLng) throw new Error("Could not resolve coordinates.");
 
-      // Fetch crime heatmap for this bbox concurrently with route
       const bbox = `${Math.min(sLat, eLat) - 0.05},${Math.min(sLng, eLng) - 0.05},${Math.max(sLat, eLat) + 0.05},${Math.max(sLng, eLng) + 0.05}`;
       const [compareRes, crimeRes] = await Promise.all([
         fetch(`${API_BASE_URL}/api/safe-route/compare?start_lat=${sLat}&start_lng=${sLng}&end_lat=${eLat}&end_lng=${eLng}&mode=${mode}`),
@@ -264,67 +195,73 @@ const SafeRouteTab: React.FC = () => {
     );
   };
 
-  // Route display data
-  const activeData = compareResult
-    ? (activeRoute === "safe" ? compareResult.safe : compareResult.fastest)
-    : null;
-
-  const safeCoords: [number, number][] = compareResult
-    ? compareResult.safe.geometry.coordinates.map(([lng, lat]) => [lat, lng])
+  const safeData = compareResult?.safe;
+  const safeCoords: [number, number][] = safeData
+    ? safeData.geometry.coordinates.map(([lng, lat]) => [lat, lng])
     : [];
-  const fastCoords: [number, number][] = compareResult
-    ? compareResult.fastest.geometry.coordinates.map(([lng, lat]) => [lat, lng])
-    : [];
-  const displayCoords = activeRoute === "safe" ? safeCoords : fastCoords;
 
   const modeBtn = (m: typeof mode, icon: React.ReactNode, label: string) => (
     <button
       key={m}
       onClick={() => setMode(m)}
-      className={`flex-1 py-2 text-xs font-bold rounded-md flex flex-col items-center gap-1 transition-all ${mode === m ? "bg-white text-blue-600 shadow" : "text-gray-500 hover:bg-white/50"}`}
+      className={`flex-1 py-3 text-xs font-black uppercase tracking-wider rounded-xl flex flex-col items-center gap-1.5 transition-all duration-300 ${
+        mode === m 
+          ? "bg-gradient-to-br from-blue-600 to-indigo-700 text-white shadow-lg shadow-blue-500/30 ring-2 ring-blue-400 ring-offset-2" 
+          : "bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-900 border border-gray-200"
+      }`}
     >
       {icon} {label}
     </button>
   );
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-200px)] min-h-[600px]">
-      {/* ── Control panel ── */}
-      <div className="w-full lg:w-1/3 bg-card border rounded-lg shadow-sm p-4 flex flex-col gap-4 official-card overflow-y-auto">
-        <div>
-          <h2 className="text-2xl font-black tracking-tight flex items-center gap-2 mb-1 text-primary">
-            <Shield className="w-6 h-6 text-blue-600" /> Safe Route AI
-          </h2>
-          <p className="text-sm text-muted-foreground">Dual-path analysis against live crime hotspots.</p>
+    <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-200px)] min-h-[700px]">
+      
+      {/* ── AI Dashboard Control Panel ── */}
+      <div className="w-full lg:w-[400px] flex flex-col gap-5 overflow-y-auto pr-2 pb-4">
+        
+        {/* Header styling */}
+        <div className="bg-gradient-to-br from-[#0f172a] to-[#1e293b] rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500 rounded-full blur-[60px] opacity-20 -mr-10 -mt-10 pointer-events-none"></div>
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-indigo-500 rounded-full blur-[50px] opacity-20 -ml-10 -mb-10 pointer-events-none"></div>
+          
+          <div className="relative z-10">
+            <h2 className="text-3xl font-black tracking-tight flex items-center gap-3 mb-2">
+              <ShieldCheck className="w-8 h-8 text-blue-400" /> 
+              Sahayta AI
+            </h2>
+            <p className="text-blue-200/80 text-sm font-medium leading-relaxed">
+              Real-time predictive safety routing powered by live crime data analysis.
+            </p>
+          </div>
         </div>
 
-        {/* Location inputs */}
-        <div className="space-y-3">
-          {/* Start */}
+        {/* Search Inputs */}
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex flex-col gap-4">
+          
           <div className="relative" ref={startRef}>
-            <label className="text-xs font-bold uppercase text-gray-500 tracking-wider mb-1 block">Start</label>
-            <div className="flex border rounded-lg overflow-hidden bg-background shadow-inner relative">
-              <span className="p-3 bg-gray-50 border-r text-green-600"><MapPin size={18} /></span>
-              <div className="flex-1 flex">
-                <input
-                  className="w-full p-3 pr-10 outline-none bg-transparent font-medium"
-                  value={startText}
-                  onChange={e => { setStartText(e.target.value); setStartPos(null); setShowSS(true); }}
-                  onFocus={() => setShowSS(true)}
-                  placeholder="Search starting point..."
-                />
-                <button onClick={handleCurrentLocation} title="Use my location"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-blue-500 hover:bg-blue-50 rounded-full transition-colors">
-                  <Navigation size={18} />
-                </button>
-              </div>
+            <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1.5 flex items-center gap-1.5">
+              <Crosshair size={12} className="text-blue-500" /> Origin
+            </label>
+            <div className="flex bg-gray-50 border border-gray-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-100 focus-within:border-blue-400 transition-all">
+              <input
+                className="w-full p-3.5 pl-4 outline-none bg-transparent font-semibold text-gray-800"
+                value={startText}
+                onChange={e => { setStartText(e.target.value); setStartPos(null); setShowSS(true); }}
+                onFocus={() => setShowSS(true)}
+                placeholder="Where are you starting?"
+              />
+              <button onClick={handleCurrentLocation} title="Use my location"
+                className="px-4 text-blue-600 hover:bg-blue-100/50 transition-colors flex items-center justify-center">
+                <Navigation size={18} />
+              </button>
             </div>
             {showSS && startSugg.length > 0 && (
-              <ul className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-48 overflow-auto">
+              <ul className="absolute z-20 w-full mt-2 bg-white/95 backdrop-blur-xl border border-gray-100 rounded-xl shadow-2xl max-h-48 overflow-auto">
                 {startSugg.map((s, i) => (
                   <li key={i} onClick={() => selectStart(s)}
-                    className="p-3 hover:bg-blue-50 cursor-pointer text-sm border-b last:border-0 flex gap-2">
-                    <MapPin size={14} className="text-gray-400 flex-shrink-0 mt-0.5" />
+                    className="p-3.5 hover:bg-blue-50 cursor-pointer text-sm border-b border-gray-50 last:border-0 flex gap-3 font-medium text-gray-700 transition-colors">
+                    <MapPin size={16} className="text-blue-400 flex-shrink-0 mt-0.5" />
                     <span className="truncate">{s.address}</span>
                   </li>
                 ))}
@@ -332,25 +269,31 @@ const SafeRouteTab: React.FC = () => {
             )}
           </div>
 
-          {/* End */}
+          <div className="flex justify-center -my-3 relative z-10 pointer-events-none">
+            <div className="bg-white p-1 rounded-full border border-gray-100 shadow-sm text-gray-300">
+              <AlertCircle size={14} />
+            </div>
+          </div>
+
           <div className="relative" ref={endRef}>
-            <label className="text-xs font-bold uppercase text-gray-500 tracking-wider mb-1 block">Destination</label>
-            <div className="flex border rounded-lg overflow-hidden bg-background shadow-inner">
-              <span className="p-3 bg-gray-50 border-r text-red-600"><MapPin size={18} /></span>
+            <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1.5 flex items-center gap-1.5">
+              <MapPin size={12} className="text-rose-500" /> Destination
+            </label>
+            <div className="flex bg-gray-50 border border-gray-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-rose-100 focus-within:border-rose-400 transition-all">
               <input
-                className="w-full p-3 outline-none bg-transparent font-medium"
+                className="w-full p-3.5 pl-4 outline-none bg-transparent font-semibold text-gray-800"
                 value={endText}
                 onChange={e => { setEndText(e.target.value); setEndPos(null); setShowES(true); }}
                 onFocus={() => setShowES(true)}
-                placeholder="Search destination..."
+                placeholder="Where to?"
               />
             </div>
             {showES && endSugg.length > 0 && (
-              <ul className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-48 overflow-auto">
+              <ul className="absolute z-20 w-full mt-2 bg-white/95 backdrop-blur-xl border border-gray-100 rounded-xl shadow-2xl max-h-48 overflow-auto">
                 {endSugg.map((s, i) => (
                   <li key={i} onClick={() => selectEnd(s)}
-                    className="p-3 hover:bg-blue-50 cursor-pointer text-sm border-b last:border-0 flex gap-2">
-                    <MapPin size={14} className="text-gray-400 flex-shrink-0 mt-0.5" />
+                    className="p-3.5 hover:bg-rose-50 cursor-pointer text-sm border-b border-gray-50 last:border-0 flex gap-3 font-medium text-gray-700 transition-colors">
+                    <MapPin size={16} className="text-rose-400 flex-shrink-0 mt-0.5" />
                     <span className="truncate">{s.address}</span>
                   </li>
                 ))}
@@ -359,80 +302,126 @@ const SafeRouteTab: React.FC = () => {
           </div>
         </div>
 
-        {/* Transport mode */}
-        <div className="bg-gray-100 p-1 border rounded-lg inline-flex w-full gap-0.5">
-          {modeBtn("car",     <Car size={16} />,      "Car")}
-          {modeBtn("bike",    <Bike size={16} />,     "Bike")}
-          {modeBtn("cycling", <Bike size={16} />,     "Cycle")}
-          {modeBtn("walking", <Footprints size={16}/>, "Walk")}
+        {/* Transport Modes */}
+        <div className="flex gap-2 w-full">
+          {modeBtn("car",     <Car size={20} />,      "Car")}
+          {modeBtn("bike",    <Bike size={20} />,     "Bike")}
+          {modeBtn("cycling", <Bike size={20} />,     "Cycle")}
+          {modeBtn("walking", <Footprints size={20}/>, "Walk")}
         </div>
 
         <button
           onClick={findRoute}
           disabled={loading || !startText || !endText}
-          className="w-full py-3.5 bg-blue-600 text-white font-black rounded-lg hover:bg-blue-700 transition shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+          className="w-full py-4 bg-gray-900 text-white font-black uppercase tracking-widest rounded-xl hover:bg-black transition-all shadow-xl shadow-gray-900/20 active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3 relative overflow-hidden group"
         >
-          {loading
-            ? <><span className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" /> Analyzing Route...</>
-            : "Compare Routes"}
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          {loading ? (
+            <span className="relative z-10 flex items-center gap-3">
+              <span className="animate-spin h-5 w-5 border-2 border-white/30 border-t-white rounded-full" /> 
+              Computing Safety Matrix...
+            </span>
+          ) : (
+            <span className="relative z-10 flex items-center gap-2">
+              <Zap size={18} className="text-yellow-400" /> Generate Safe Route
+            </span>
+          )}
         </button>
 
         {error && (
-          <div className="p-3 bg-red-50 text-red-600 border border-red-200 rounded-lg text-sm flex gap-2">
-            <AlertCircle size={16} className="mt-0.5 flex-shrink-0" /> {error}
+          <div className="p-4 bg-rose-50 text-rose-600 border border-rose-100 rounded-xl text-sm font-semibold flex items-start gap-3 shadow-sm">
+            <AlertCircle size={18} className="mt-0.5 flex-shrink-0" /> {error}
           </div>
         )}
 
-        {/* ── Dual route comparison cards ── */}
-        {compareResult && !loading && (
-          <div className="space-y-2">
-            <div className="text-xs font-black uppercase tracking-widest text-gray-500 border-b pb-2">
-              Route Comparison — {mode.charAt(0).toUpperCase() + mode.slice(1)}
+        {/* ── Beautiful AI Results Card ── */}
+        {safeData && !loading && (
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="bg-slate-50 border-b border-gray-100 p-4 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-slate-800 font-bold">
+                <ShieldCheck className="text-emerald-500" size={18} /> Optimized Safe Route
+              </div>
+              <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-[10px] font-black uppercase tracking-widest">
+                AI Verified
+              </span>
             </div>
-            <div className="flex gap-2">
-              <RouteCard
-                label="Safest"
-                color="green"
-                stats={compareResult.safe.properties}
-                active={activeRoute === "safe"}
-                onClick={() => setActiveRoute("safe")}
-              />
-              <RouteCard
-                label="Fastest"
-                color="blue"
-                stats={compareResult.fastest.properties}
-                active={activeRoute === "fastest"}
-                onClick={() => setActiveRoute("fastest")}
-              />
-            </div>
-            <p className="text-[10px] text-gray-400 text-center">Click a card to highlight that route on the map</p>
-          </div>
-        )}
 
-        {/* Active route full stats */}
-        {activeData && !loading && (
-          <div className="border border-gray-100 rounded-xl bg-white shadow-sm p-4 animate-in fade-in duration-300">
-            <div className="text-xs font-black uppercase tracking-widest text-gray-500 mb-3">
-              {activeRoute === "safe" ? "🟢 Safest Route — Details" : "🔵 Fastest Route — Details"}
-            </div>
-            <div className="flex items-center justify-between text-sm mb-2">
-              <span className="flex items-center gap-1 text-gray-600 font-semibold"><Zap size={14} className="text-yellow-500"/> Time Efficiency</span>
-              <span className="font-black">{activeData.properties.time_efficiency}%</span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className={`flex items-center gap-1 font-semibold ${activeData.properties.high_risk_zones > 0 ? "text-red-500" : "text-green-600"}`}>
-                <AlertTriangle size={14}/> High-Risk Zones
-              </span>
-              <span className={`font-black text-sm ${activeData.properties.high_risk_zones > 0 ? "text-red-600" : "text-green-600"}`}>
-                {activeData.properties.high_risk_zones} zones
-              </span>
+            <div className="p-5">
+              {/* Core metrics */}
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 flex flex-col items-center justify-center text-center">
+                  <div className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1">Total Time</div>
+                  <div className="text-2xl font-black text-gray-900 flex items-center gap-1.5">
+                    {formatETA(safeData.properties.duration)}
+                  </div>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 flex flex-col items-center justify-center text-center">
+                  <div className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1">Distance</div>
+                  <div className="text-2xl font-black text-gray-900 flex items-center gap-1.5">
+                    {formatDist(safeData.properties.distance)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Safety Score Highlight */}
+              <div 
+                className="rounded-xl p-5 border relative overflow-hidden mb-4"
+                style={{ 
+                  backgroundColor: scoreBg(safeData.properties.safety_score), 
+                  borderColor: scoreBorder(safeData.properties.safety_score) 
+                }}
+              >
+                <Activity size={100} className="absolute -right-6 -bottom-6 opacity-[0.05]" style={{ color: scoreHex(safeData.properties.safety_score) }} />
+                
+                <div className="flex items-center justify-between relative z-10">
+                  <div>
+                    <div className="text-xs font-black uppercase tracking-widest opacity-60 mb-1" style={{ color: scoreHex(safeData.properties.safety_score) }}>Security Rating</div>
+                    <div className={`text-lg font-black flex items-center gap-1.5 ${riskColor(safeData.properties.risk_level)}`}>
+                      {safeData.properties.risk_level === "Low" ? <Shield size={18} /> : <AlertTriangle size={18} />}
+                      {safeData.properties.risk_level} Risk Route
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-4xl font-black tracking-tighter" style={{ color: scoreHex(safeData.properties.safety_score) }}>
+                      {safeData.properties.safety_score}
+                      <span className="text-lg opacity-50 font-bold ml-0.5">/100</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Warnings List */}
+              {safeData.properties.high_risk_zones > 0 && (
+                <div className="bg-rose-50/50 border border-rose-100 rounded-xl p-4 flex items-start gap-3">
+                  <div className="bg-rose-100 p-2 rounded-lg text-rose-600 mt-0.5"><AlertTriangle size={16} /></div>
+                  <div>
+                    <h5 className="text-sm font-bold text-rose-800 mb-0.5">High-Risk Zones Detected</h5>
+                    <p className="text-xs text-rose-600/80 font-medium leading-relaxed">
+                      AI has routed you through {safeData.properties.high_risk_zones} high-risk varified crime zone(s). Proceed with caution and avoid unlit areas.
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              {safeData.properties.high_risk_zones === 0 && (
+                <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-4 flex items-start gap-3">
+                  <div className="bg-emerald-100 p-2 rounded-lg text-emerald-600 mt-0.5"><ShieldCheck size={16} /></div>
+                  <div>
+                    <h5 className="text-sm font-bold text-emerald-800 mb-0.5">Clear Path Forward</h5>
+                    <p className="text-xs text-emerald-600/80 font-medium leading-relaxed">
+                      This route uniquely avoids all known major crime hotspots reported in real-time.
+                    </p>
+                  </div>
+                </div>
+              )}
+
             </div>
           </div>
         )}
       </div>
 
       {/* ── Map area ── */}
-      <div className="w-full lg:w-2/3 border rounded-xl overflow-hidden shadow-sm relative z-0 flex flex-col">
+      <div className="w-full lg:flex-1 border-2 border-slate-100 rounded-2xl overflow-hidden shadow-2xl shadow-blue-900/5 relative z-0 flex flex-col">
         <MapContainer center={[22.5726, 88.3639]} zoom={13} style={{ height: "100%", width: "100%", zIndex: 0 }}>
           <TileLayer
             attribution='&copy; <a href="https://carto.com/">CartoDB</a>'
@@ -440,53 +429,52 @@ const SafeRouteTab: React.FC = () => {
           />
           {crimePoints.length > 0 && <HeatmapLayer points={crimePoints} />}
 
-          {/* Both polylines always visible; active one is thicker */}
+          {/* Render ONLY the safe route polyline */}
           {safeCoords.length > 0 && (
             <Polyline positions={safeCoords}
               color="#22c55e"
-              weight={activeRoute === "safe" ? 7 : 4}
-              opacity={activeRoute === "safe" ? 0.9 : 0.45}
-              dashArray={activeRoute === "safe" ? undefined : "8 6"}
-            />
-          )}
-          {fastCoords.length > 0 && (
-            <Polyline positions={fastCoords}
-              color="#3b82f6"
-              weight={activeRoute === "fastest" ? 7 : 4}
-              opacity={activeRoute === "fastest" ? 0.9 : 0.45}
-              dashArray={activeRoute === "fastest" ? undefined : "8 6"}
+              weight={7}
+              opacity={0.9}
+              lineCap="round"
+              lineJoin="round"
+              className="drop-shadow-md"
             />
           )}
 
           {startPos && <Marker position={startPos} />}
           {endPos   && <Marker position={endPos}   />}
-          {displayCoords.length > 0 && <MapBounds coords={displayCoords} />}
+          {safeCoords.length > 0 && <MapBounds coords={safeCoords} />}
         </MapContainer>
 
         {loading && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
-            <div className="bg-white/90 backdrop-blur px-6 py-4 rounded-full shadow-2xl flex items-center gap-3 font-bold text-blue-600 animate-pulse">
-              <span className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full" />
-              Calculating Routes...
+          <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none bg-white/20 backdrop-blur-[2px]">
+            <div className="bg-gray-900/90 text-white px-8 py-5 rounded-2xl shadow-2xl flex flex-col items-center gap-4 animate-in fade-in zoom-in-95">
+              <span className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full" />
+              <div className="text-center">
+                <div className="font-black tracking-wide">Processing Spatial Data</div>
+                <div className="text-xs text-gray-400 font-medium mt-1">Cross-referencing crime logs...</div>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Legend */}
-        <div className="absolute bottom-6 right-6 bg-white/95 backdrop-blur-md p-4 rounded-xl shadow-xl border border-gray-100 z-[1000] text-sm pointer-events-none">
-          <h4 className="font-black mb-3 text-[10px] uppercase tracking-widest text-gray-500 border-b pb-2">Route Legend</h4>
-          <div className="flex items-center gap-3 mb-2 font-medium">
-            <div className="w-5 h-1.5 rounded-full bg-green-500" />
-            <span className={activeRoute === "safe" ? "font-black text-green-600" : "text-gray-600"}>Safest Route</span>
+        {/* Sleek Legend */}
+        <div className="absolute bottom-6 left-6 bg-white/95 backdrop-blur-xl p-4 rounded-2xl shadow-xl border border-gray-100 z-[1000] text-sm pointer-events-none">
+          <h4 className="font-black mb-3 text-[10px] uppercase tracking-widest text-gray-400 border-b border-gray-100 pb-2">Map Legend</h4>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-6 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
+            <span className="font-bold text-gray-700">AI Safe Route</span>
           </div>
-          <div className="flex items-center gap-3 mb-3 font-medium">
-            <div className="w-5 h-1.5 rounded-full bg-blue-500" />
-            <span className={activeRoute === "fastest" ? "font-black text-blue-600" : "text-gray-600"}>Fastest Route</span>
-          </div>
-          <div className="border-t pt-2 space-y-1.5 text-gray-600">
-            <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-red-600 shadow-[0_0_6px_rgba(220,38,38,0.6)]" /> High Risk</div>
-            <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-orange-400 shadow-[0_0_6px_rgba(251,146,60,0.6)]" /> Medium Risk</div>
-            <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-blue-400 shadow-[0_0_6px_rgba(96,165,250,0.5)]" /> Low Risk</div>
+          <div className="space-y-2 mt-3 text-xs font-semibold text-gray-600">
+            <div className="flex items-center gap-2.5">
+              <div className="w-3 h-3 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]" /> High Crime Density
+            </div>
+            <div className="flex items-center gap-2.5">
+              <div className="w-3 h-3 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.5)]" /> Medium Density
+            </div>
+            <div className="flex items-center gap-2.5">
+              <div className="w-3 h-3 rounded-full bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.5)]" /> Low / Safe Area
+            </div>
           </div>
         </div>
       </div>
