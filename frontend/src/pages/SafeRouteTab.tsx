@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   Shield,
-  Clock,
   MapPin,
   Navigation,
   AlertTriangle,
@@ -20,6 +19,19 @@ import iconShadow from "leaflet/dist/images/marker-shadow.png";
 
 const DefaultIcon = L.icon({ iconUrl: icon, shadowUrl: iconShadow, iconAnchor: [12, 41] });
 L.Marker.prototype.options.icon = DefaultIcon;
+
+// Custom pointers for source and destination
+const startIcon = L.divIcon({
+  className: "custom-start-pin",
+  iconAnchor: [15, 30],
+  html: `<div style="background-color: #2563eb; width: 24px; height: 24px; border-radius: 50% 50% 50% 0; border: 3px solid white; transform: rotate(-45deg); box-shadow: 2px 2px 4px rgba(0,0,0,0.3);"></div>`
+});
+
+const endIcon = L.divIcon({
+  className: "custom-end-pin",
+  iconAnchor: [15, 30],
+  html: `<div style="background-color: #dc2626; width: 24px; height: 24px; border-radius: 50% 50% 50% 0; border: 3px solid white; transform: rotate(-45deg); box-shadow: 2px 2px 4px rgba(0,0,0,0.3);"></div>`
+});
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -199,10 +211,10 @@ const SafeRouteTab: React.FC = () => {
     : [];
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-200px)] min-h-[600px] w-full max-w-7xl mx-auto">
+    <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-100px)] min-h-[600px] w-full max-w-7xl mx-auto">
       
       {/* ── Control Panel ── */}
-      <div className="w-full lg:w-[380px] bg-white border rounded-lg shadow-sm p-5 flex flex-col gap-5 overflow-y-auto">
+      <div className="w-full lg:w-[380px] flex-shrink-0 max-h-[500px] lg:max-h-none lg:h-full bg-white border rounded-lg shadow-sm p-4 lg:p-5 pb-8 flex flex-col gap-5 overflow-y-auto">
         
         {/* Header */}
         <div>
@@ -408,8 +420,8 @@ const SafeRouteTab: React.FC = () => {
             />
           )}
 
-          {startPos && <Marker position={startPos} />}
-          {endPos   && <Marker position={endPos}   />}
+          {startPos && <Marker position={startPos} icon={startIcon} />}
+          {endPos   && <Marker position={endPos} icon={endIcon} />}
           {safeCoords.length > 0 && <MapBounds coords={safeCoords} />}
         </MapContainer>
 
