@@ -6,12 +6,11 @@ import {
   Navigation,
   AlertTriangle,
   AlertCircle,
-  Zap,
-  Car,
-  Bike,
   Footprints,
   ShieldCheck,
-  CheckCircle2
+  CheckCircle2,
+  Map as MapIcon,
+  Layers
 } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
@@ -85,9 +84,10 @@ const SafeRouteTab: React.FC = () => {
   const [showSS,    setShowSS]    = useState(false);
   const [showES,    setShowES]    = useState(false);
 
-  const [mode,    setMode]    = useState<"car"|"bike"|"cycling"|"walking">("car");
+  // We enforce walking mode strictly per user request
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState<string | null>(null);
+  const [mapType, setMapType] = useState<"standard" | "satellite">("standard");
 
   const [compareResult, setCompareResult] = useState<CompareResult | null>(null);
   const [crimePoints,   setCrimePoints]   = useState<[number, number, number][]>([]);
@@ -158,7 +158,7 @@ const SafeRouteTab: React.FC = () => {
 
       const bbox = `${Math.min(sLat, eLat) - 0.05},${Math.min(sLng, eLng) - 0.05},${Math.max(sLat, eLat) + 0.05},${Math.max(sLng, eLng) + 0.05}`;
       const [compareRes, crimeRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/safe-route/compare?start_lat=${sLat}&start_lng=${sLng}&end_lat=${eLat}&end_lng=${eLng}&mode=${mode}`),
+        fetch(`${API_BASE_URL}/api/safe-route/compare?start_lat=${sLat}&start_lng=${sLng}&end_lat=${eLat}&end_lng=${eLng}&mode=walking`),
         fetch(`${API_BASE_URL}/api/safe-route/crime-predictions?bbox=${bbox}`),
       ]);
 
@@ -198,20 +198,6 @@ const SafeRouteTab: React.FC = () => {
     ? safeData.geometry.coordinates.map(([lng, lat]) => [lat, lng])
     : [];
 
-  const modeBtn = (m: typeof mode, icon: React.ReactNode, label: string) => (
-    <button
-      key={m}
-      onClick={() => setMode(m)}
-      className={`flex-1 py-2 text-xs font-bold rounded-md flex flex-col items-center gap-1 transition-all ${
-        mode === m 
-          ? "bg-blue-50 text-blue-700 shadow-sm border border-blue-200" 
-          : "text-gray-500 hover:bg-gray-50 border border-transparent"
-      }`}
-    >
-      {icon} {label}
-    </button>
-  );
-
   return (
     <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-200px)] min-h-[600px] w-full max-w-7xl mx-auto">
       
@@ -223,7 +209,9 @@ const SafeRouteTab: React.FC = () => {
           <h2 className="text-2xl font-black tracking-tight flex items-center gap-2 mb-1 text-gray-900">
             <Shield className="w-6 h-6 text-blue-600" /> Safe Route
           </h2>
-          <p className="text-sm text-gray-500 font-medium">Find the safest path avoiding known crime hotspots.</p>
+          <p className="text-sm text-gray-500 font-medium leading-relaxed">
+            Find the safest pedestrian path avoiding known crime hotspots.
+          </p>
         </div>
 
         {/* Location inputs */}
@@ -285,12 +273,10 @@ const SafeRouteTab: React.FC = () => {
           </div>
         </div>
 
-        {/* Transport Modes */}
-        <div className="bg-gray-100/80 p-1 border rounded-lg inline-flex w-full gap-0.5">
-          {modeBtn("car",     <Car size={16} />,      "Car")}
-          {modeBtn("bike",    <Bike size={16} />,     "Bike")}
-          {modeBtn("cycling", <Bike size={16} />,     "Cycle")}
-          {modeBtn("walking", <Footprints size={16}/>, "Walk")}
+        {/* Walk mode indicator */}
+        <div className="bg-blue-50 text-blue-700 border border-blue-200 p-3 rounded-lg flex items-center gap-3">
+          <Footprints size={20} className="flex-shrink-0" />
+          <p className="text-sm font-medium">Safe Route is strictly optimized for pedestrian walking speeds.</p>
         </div>
 
         <button
@@ -301,7 +287,7 @@ const SafeRouteTab: React.FC = () => {
           {loading ? (
             <><span className="animate-spin h-5 w-5 border-2 border-white/30 border-t-white rounded-full" /> Calculating Route...</>
           ) : (
-            <>Find Safe Route</>
+            <>Find Safe Walking Route</>
           )}
         </button>
 
@@ -321,37 +307,42 @@ const SafeRouteTab: React.FC = () => {
             </div>
 
             <div className="p-4 space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
-                  <div className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-1">ETA</div>
-                  <div className="text-xl font-black text-gray-900 flex items-center gap-1.5">
-                    <Clock size={16} className="text-blue-500" /> {formatETA(safeData.properties.duration)}
-                  </div>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
-                  <div className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-1">Distance</div>
-                  <div className="text-xl font-black text-gray-900 flex items-center gap-1.5">
-                    <Navigation size={16} className="text-blue-500" /> {formatDist(safeData.properties.distance)}
-                  </div>
-                </div>
-              </div>
-
+              
+              {/* Highlighted Prominent Safety Index */}
               <div 
-                className="rounded-lg p-3.5 flex items-center justify-between border"
+                className="rounded-xl p-5 border flex items-center justify-between"
                 style={{ backgroundColor: scoreBg(safeData.properties.safety_score), borderColor: scoreBorder(safeData.properties.safety_score) }}
               >
                 <div>
-                  <div className="text-[10px] font-bold uppercase tracking-widest opacity-70 mb-0.5" style={{ color: scoreHex(safeData.properties.safety_score) }}>Risk Assessment</div>
-                  <div className={`text-sm font-bold flex items-center gap-1.5 ${riskColor(safeData.properties.risk_level)}`}>
-                    {safeData.properties.risk_level === "Low" ? <Shield size={16} /> : <AlertTriangle size={16} />}
-                    {safeData.properties.risk_level} Risk
+                  <div className="text-xs font-black uppercase tracking-widest opacity-80 mb-1" style={{ color: scoreHex(safeData.properties.safety_score) }}>
+                    Safety Index
+                  </div>
+                  <div className={`text-base font-bold flex items-center gap-1.5 ${riskColor(safeData.properties.risk_level)}`}>
+                    {safeData.properties.risk_level === "Low" ? <Shield size={18} /> : <AlertTriangle size={18} />}
+                    {safeData.properties.risk_level} Risk Area
                   </div>
                 </div>
-                <div className="text-right flex items-baseline gap-1">
-                  <span className="text-3xl font-black" style={{ color: scoreHex(safeData.properties.safety_score) }}>
+                <div className="text-right flex items-baseline gap-1 bg-white p-3 rounded-xl shadow-sm border border-black/5" style={{ color: scoreHex(safeData.properties.safety_score) }}>
+                  <span className="text-4xl font-black">
                     {safeData.properties.safety_score}
                   </span>
-                  <span className="text-sm font-bold opacity-60" style={{ color: scoreHex(safeData.properties.safety_score) }}>/100</span>
+                  <span className="text-sm font-bold opacity-60">/100</span>
+                </div>
+              </div>
+
+              {/* Driving ETA / Dist */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-gray-50 rounded-lg p-3 border border-gray-100 flex flex-col items-center">
+                  <div className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-1 flex items-center gap-1"><Footprints size={12}/> Walking Time</div>
+                  <div className="text-xl font-black text-gray-900 flex items-center gap-1.5">
+                    {formatETA(safeData.properties.duration)}
+                  </div>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3 border border-gray-100 flex flex-col items-center">
+                  <div className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-1">Distance</div>
+                  <div className="text-xl font-black text-gray-900 flex items-center gap-1.5">
+                    {formatDist(safeData.properties.distance)}
+                  </div>
                 </div>
               </div>
 
@@ -364,7 +355,7 @@ const SafeRouteTab: React.FC = () => {
               {safeData.properties.high_risk_zones === 0 && (
                 <div className="flex items-start gap-2 text-sm text-green-700 font-medium bg-green-50 p-2.5 rounded-lg border border-green-100">
                   <ShieldCheck size={16} className="mt-0.5 flex-shrink-0" /> 
-                  This route avoids all major known high-risk crime zones.
+                  This route strictly avoids all major known high-risk crime zones.
                 </div>
               )}
             </div>
@@ -374,16 +365,42 @@ const SafeRouteTab: React.FC = () => {
 
       {/* ── Map Area ── */}
       <div className="w-full lg:flex-1 border border-gray-200 rounded-lg overflow-hidden shadow-sm relative z-0 flex flex-col bg-gray-50">
+        
+        {/* Map Type Toggle */}
+        <div className="absolute top-4 right-4 z-[1000] bg-white rounded-lg shadow-md border border-gray-200 flex overflow-hidden">
+          <button 
+            onClick={() => setMapType("standard")}
+            className={`px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 ${mapType === "standard" ? "bg-blue-50 text-blue-600" : "text-gray-500 hover:bg-gray-50"}`}
+          >
+            <MapIcon size={14} /> Map
+          </button>
+          <div className="w-px bg-gray-200"></div>
+          <button 
+            onClick={() => setMapType("satellite")}
+            className={`px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 ${mapType === "satellite" ? "bg-blue-50 text-blue-600" : "text-gray-500 hover:bg-gray-50"}`}
+          >
+            <Layers size={14} /> Satellite
+          </button>
+        </div>
+
         <MapContainer center={[22.5726, 88.3639]} zoom={13} style={{ height: "100%", width: "100%", zIndex: 0 }}>
-          <TileLayer
-            attribution='&copy; <a href="https://carto.com/">CartoDB</a>'
-            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-          />
+          {mapType === "standard" ? (
+            <TileLayer
+              attribution='&copy; <a href="https://carto.com/">CartoDB</a>'
+              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+            />
+          ) : (
+            <TileLayer
+              attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            />
+          )}
+
           {crimePoints.length > 0 && <HeatmapLayer points={crimePoints} />}
 
           {safeCoords.length > 0 && (
             <Polyline positions={safeCoords}
-              color="#22c55e"
+              color={mapType === "satellite" ? "#10b981" : "#22c55e"} // slightly brighter green on sat view
               weight={6}
               opacity={0.9}
               lineCap="round"
@@ -406,13 +423,17 @@ const SafeRouteTab: React.FC = () => {
         )}
 
         {/* Legend */}
-        <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm p-3.5 rounded-lg shadow-md border border-gray-200 z-[1000] text-sm pointer-events-none">
-          <h4 className="font-bold mb-2 text-[10px] uppercase tracking-wider text-gray-500 border-b pb-1.5">Map Legend</h4>
+        <div className={`absolute bottom-4 left-4 p-3.5 rounded-lg shadow-md border z-[1000] text-sm pointer-events-none ${
+          mapType === "satellite" ? "bg-black/70 backdrop-blur-md border-white/20 text-white" : "bg-white/95 backdrop-blur-sm border-gray-200 text-gray-800"
+        }`}>
+          <h4 className={`font-bold mb-2 text-[10px] uppercase tracking-wider border-b pb-1.5 ${mapType === "satellite" ? "text-gray-300 border-white/20" : "text-gray-500 border-gray-200"}`}>
+            Map Legend
+          </h4>
           <div className="flex items-center gap-2.5 mb-2.5">
-            <div className="w-4 h-1.5 rounded-full bg-green-500" />
-            <span className="font-bold text-gray-800 text-xs">Suggested Route</span>
+            <div className="w-4 h-1.5 rounded-full bg-green-500 shadow-sm" />
+            <span className="font-bold text-xs">Safe Walking Route</span>
           </div>
-          <div className="space-y-1.5 text-xs font-medium text-gray-600">
+          <div className={`space-y-1.5 text-xs font-medium ${mapType === "satellite" ? "text-gray-200" : "text-gray-600"}`}>
             <div className="flex items-center gap-2">
               <div className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm" /> High Crime Density
             </div>
@@ -420,7 +441,7 @@ const SafeRouteTab: React.FC = () => {
               <div className="w-2.5 h-2.5 rounded-full bg-yellow-400 shadow-sm" /> Medium Density
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-blue-300 shadow-sm" /> Low Density / Safe
+              <div className="w-2.5 h-2.5 rounded-full bg-blue-300 shadow-[0_0_2px_rgba(255,255,255,0.5)]" /> Low Density / Safe
             </div>
           </div>
         </div>
