@@ -17,10 +17,13 @@ _crime_df_cache = None   # kept only for crime-predictions endpoint
 # ── Kolkata urban traffic multipliers ─────────────────────────────────────────
 # OSRM returns free-flow times; real Kolkata city speeds are much lower.
 TRAFFIC_FACTORS = {
-    'car':     1.7,   # ~35 km/h effective (OSRM assumes ~60 km/h)
-    'bike':    1.3,   # motorcycle — affected by signals/traffic
-    'cycling': 1.2,   # bicycle — largely unaffected by motorised flow
-    'walking': 1.1,   # pedestrian — slight delay at crossings
+    # OSRM driving baseline ~60 km/h:
+    'bike':    1.15,  # motorcycles weave through traffic → ~52 km/h effective (fastest)
+    'car':     1.7,   # city traffic, signals → ~35 km/h effective
+    # OSRM cycling baseline ~15 km/h:
+    'cycling': 1.25,  # road friction, signals → ~12 km/h effective
+    # OSRM foot baseline ~5 km/h:
+    'walking': 1.15,  # pedestrian crossings → ~4.3 km/h effective (slowest)
 }
 
 
