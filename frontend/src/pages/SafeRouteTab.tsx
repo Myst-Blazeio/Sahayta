@@ -211,10 +211,10 @@ const SafeRouteTab: React.FC = () => {
     : [];
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-100px)] min-h-[600px] w-full max-w-7xl mx-auto overflow-hidden">
+    <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-100px)] min-h-[600px] w-full max-w-7xl mx-auto">
       
       {/* ── Control Panel ── */}
-      <div className="w-full lg:w-[380px] flex-shrink-0 flex flex-col bg-white border rounded-lg shadow-sm h-[500px] lg:h-full relative">
+      <div className="w-full lg:w-[380px] flex-shrink-0 flex flex-col bg-white border rounded-lg shadow-sm h-[600px] lg:h-full relative overflow-hidden">
         <div className="p-4 lg:p-5 overflow-y-auto w-full h-full flex flex-col gap-5 pb-8 min-h-0">
         
         {/* Header */}
