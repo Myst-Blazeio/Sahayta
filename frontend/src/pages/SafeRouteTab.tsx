@@ -211,10 +211,11 @@ const SafeRouteTab: React.FC = () => {
     : [];
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-100px)] min-h-[600px] w-full max-w-7xl mx-auto">
+    <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-100px)] min-h-[600px] w-full max-w-7xl mx-auto overflow-hidden">
       
       {/* ── Control Panel ── */}
-      <div className="w-full lg:w-[380px] flex-shrink-0 max-h-[500px] lg:max-h-none lg:h-full bg-white border rounded-lg shadow-sm p-4 lg:p-5 pb-8 flex flex-col gap-5 overflow-y-auto">
+      <div className="w-full lg:w-[380px] flex-shrink-0 flex flex-col bg-white border rounded-lg shadow-sm h-[500px] lg:h-full relative">
+        <div className="p-4 lg:p-5 overflow-y-auto w-full h-full flex flex-col gap-5 pb-8 min-h-0">
         
         {/* Header */}
         <div>
@@ -373,6 +374,7 @@ const SafeRouteTab: React.FC = () => {
             </div>
           </div>
         )}
+        </div>
       </div>
 
       {/* ── Map Area ── */}
