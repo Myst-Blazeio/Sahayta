@@ -211,115 +211,117 @@ const SafeRouteTab: React.FC = () => {
     : [];
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-100px)] min-h-[600px] w-full max-w-7xl mx-auto">
+    <div className="flex flex-col lg:flex-row gap-8 max-w-7xl mx-auto py-6 px-4 lg:px-0">
       
-      {/* ── Control Panel ── */}
-      <div className="w-full lg:w-[380px] flex-shrink-0 flex flex-col bg-white border rounded-lg shadow-sm h-[600px] lg:h-full relative overflow-hidden">
-        <div className="p-4 lg:p-5 overflow-y-auto w-full h-full flex flex-col gap-5 pb-8 min-h-0">
+      {/* ── Control Panel (Left Side - Natural Flow) ── */}
+      <div className="w-full lg:w-[420px] flex-shrink-0 flex flex-col gap-6">
         
-        {/* Header */}
-        <div>
-          <h2 className="text-2xl font-black tracking-tight flex items-center gap-2 mb-1 text-gray-900">
-            <Shield className="w-6 h-6 text-blue-600" /> Safe Route
-          </h2>
-          <p className="text-sm text-gray-500 font-medium leading-relaxed">
-            Find the safest pedestrian path avoiding known crime hotspots.
-          </p>
-        </div>
+        {/* Main Input Card */}
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 flex flex-col gap-5">
+          {/* Header */}
+          <div>
+            <h2 className="text-2xl font-black tracking-tight flex items-center gap-2 mb-1 text-gray-900">
+              <Shield className="w-6 h-6 text-blue-600" /> Safe Route
+            </h2>
+            <p className="text-sm text-gray-500 font-medium leading-relaxed">
+              Find the safest pedestrian path avoiding known crime hotspots.
+            </p>
+          </div>
 
-        {/* Location inputs */}
-        <div className="space-y-4">
-          <div className="relative" ref={startRef}>
-            <label className="text-xs font-bold uppercase text-gray-500 tracking-wider mb-1 block">Start Location</label>
-            <div className="flex border rounded-lg overflow-hidden bg-white shadow-sm transition-all focus-within:ring-2 focus-within:ring-blue-100 focus-within:border-blue-400">
-              <span className="p-3 bg-gray-50 border-r text-gray-400"><MapPin size={18} /></span>
-              <div className="flex-1 flex">
-                <input
-                  className="w-full p-3 pr-10 outline-none bg-transparent font-medium text-gray-800"
-                  value={startText}
-                  onChange={e => { setStartText(e.target.value); setStartPos(null); setShowSS(true); }}
-                  onFocus={() => setShowSS(true)}
-                  placeholder="Enter starting point..."
-                />
-                <button onClick={handleCurrentLocation} title="Use my location"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-blue-600 hover:bg-blue-50 rounded-full transition-colors">
-                  <Navigation size={18} />
-                </button>
+          {/* Location inputs */}
+          <div className="space-y-4">
+            <div className="relative" ref={startRef}>
+              <label className="text-xs font-bold uppercase text-gray-500 tracking-wider mb-1 block">Start Location</label>
+              <div className="flex border rounded-lg overflow-hidden bg-white shadow-sm transition-all focus-within:ring-2 focus-within:ring-blue-100 focus-within:border-blue-400">
+                <span className="p-3 bg-gray-50 border-r text-gray-400"><MapPin size={18} /></span>
+                <div className="flex-1 flex">
+                  <input
+                    className="w-full p-3 pr-10 outline-none bg-transparent font-medium text-gray-800"
+                    value={startText}
+                    onChange={e => { setStartText(e.target.value); setStartPos(null); setShowSS(true); }}
+                    onFocus={() => setShowSS(true)}
+                    placeholder="Enter starting point..."
+                  />
+                  <button onClick={handleCurrentLocation} title="Use my location"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-blue-600 hover:bg-blue-50 rounded-full transition-colors">
+                    <Navigation size={18} />
+                  </button>
+                </div>
               </div>
+              {showSS && startSugg.length > 0 && (
+                <ul className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-48 overflow-auto">
+                  {startSugg.map((s, i) => (
+                    <li key={i} onClick={() => selectStart(s)}
+                      className="p-3 hover:bg-blue-50 cursor-pointer text-sm border-b last:border-0 flex gap-2 text-gray-700">
+                      <MapPin size={14} className="text-gray-400 flex-shrink-0 mt-0.5" />
+                      <span className="truncate">{s.address}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
-            {showSS && startSugg.length > 0 && (
-              <ul className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-48 overflow-auto">
-                {startSugg.map((s, i) => (
-                  <li key={i} onClick={() => selectStart(s)}
-                    className="p-3 hover:bg-blue-50 cursor-pointer text-sm border-b last:border-0 flex gap-2 text-gray-700">
-                    <MapPin size={14} className="text-gray-400 flex-shrink-0 mt-0.5" />
-                    <span className="truncate">{s.address}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
+
+            <div className="relative" ref={endRef}>
+              <label className="text-xs font-bold uppercase text-gray-500 tracking-wider mb-1 block">Destination</label>
+              <div className="flex border rounded-lg overflow-hidden bg-white shadow-sm transition-all focus-within:ring-2 focus-within:ring-blue-100 focus-within:border-blue-400">
+                <span className="p-3 bg-gray-50 border-r text-gray-400"><MapPin size={18} /></span>
+                <input
+                  className="w-full p-3 outline-none bg-transparent font-medium text-gray-800"
+                  value={endText}
+                  onChange={e => { setEndText(e.target.value); setEndPos(null); setShowES(true); }}
+                  onFocus={() => setShowES(true)}
+                  placeholder="Enter destination..."
+                />
+              </div>
+              {showES && endSugg.length > 0 && (
+                <ul className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-48 overflow-auto">
+                  {endSugg.map((s, i) => (
+                    <li key={i} onClick={() => selectEnd(s)}
+                      className="p-3 hover:bg-blue-50 cursor-pointer text-sm border-b last:border-0 flex gap-2 text-gray-700">
+                      <MapPin size={14} className="text-gray-400 flex-shrink-0 mt-0.5" />
+                      <span className="truncate">{s.address}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
 
-          <div className="relative" ref={endRef}>
-            <label className="text-xs font-bold uppercase text-gray-500 tracking-wider mb-1 block">Destination</label>
-            <div className="flex border rounded-lg overflow-hidden bg-white shadow-sm transition-all focus-within:ring-2 focus-within:ring-blue-100 focus-within:border-blue-400">
-              <span className="p-3 bg-gray-50 border-r text-gray-400"><MapPin size={18} /></span>
-              <input
-                className="w-full p-3 outline-none bg-transparent font-medium text-gray-800"
-                value={endText}
-                onChange={e => { setEndText(e.target.value); setEndPos(null); setShowES(true); }}
-                onFocus={() => setShowES(true)}
-                placeholder="Enter destination..."
-              />
-            </div>
-            {showES && endSugg.length > 0 && (
-              <ul className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-48 overflow-auto">
-                {endSugg.map((s, i) => (
-                  <li key={i} onClick={() => selectEnd(s)}
-                    className="p-3 hover:bg-blue-50 cursor-pointer text-sm border-b last:border-0 flex gap-2 text-gray-700">
-                    <MapPin size={14} className="text-gray-400 flex-shrink-0 mt-0.5" />
-                    <span className="truncate">{s.address}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
+          {/* Walk mode indicator */}
+          <div className="bg-blue-50 text-blue-700 border border-blue-200 p-3 rounded-lg flex items-center gap-3">
+            <Footprints size={20} className="flex-shrink-0" />
+            <p className="text-sm font-medium">Safe Route is strictly optimized for pedestrian walking speeds.</p>
           </div>
-        </div>
 
-        {/* Walk mode indicator */}
-        <div className="bg-blue-50 text-blue-700 border border-blue-200 p-3 rounded-lg flex items-center gap-3">
-          <Footprints size={20} className="flex-shrink-0" />
-          <p className="text-sm font-medium">Safe Route is strictly optimized for pedestrian walking speeds.</p>
-        </div>
+          <button
+            onClick={findRoute}
+            disabled={loading || !startText || !endText}
+            className="w-full py-3.5 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <><span className="animate-spin h-5 w-5 border-2 border-white/30 border-t-white rounded-full" /> Calculating Route...</>
+            ) : (
+              <>Find Safe Walking Route</>
+            )}
+          </button>
 
-        <button
-          onClick={findRoute}
-          disabled={loading || !startText || !endText}
-          className="w-full py-3.5 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
-        >
-          {loading ? (
-            <><span className="animate-spin h-5 w-5 border-2 border-white/30 border-t-white rounded-full" /> Calculating Route...</>
-          ) : (
-            <>Find Safe Walking Route</>
+          {error && (
+            <div className="p-3 bg-red-50 text-red-600 border border-red-200 rounded-lg text-sm font-medium flex gap-2 items-start">
+              <AlertCircle size={16} className="mt-0.5 flex-shrink-0" /> {error}
+            </div>
           )}
-        </button>
-
-        {error && (
-          <div className="p-3 bg-red-50 text-red-600 border border-red-200 rounded-lg text-sm font-medium flex gap-2 items-start">
-            <AlertCircle size={16} className="mt-0.5 flex-shrink-0" /> {error}
-          </div>
-        )}
+        </div>
 
         {/* ── Route Statistics Card ── */}
         {safeData && !loading && (
-          <div className="border border-gray-200 rounded-xl bg-white shadow-sm overflow-hidden mt-2">
-            <div className="bg-gray-50 border-b p-3 flex justify-between items-center">
+          <div className="border border-gray-200 rounded-xl bg-white shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className="bg-gray-50 border-b p-4 flex justify-between items-center">
               <span className="text-xs font-bold uppercase tracking-widest text-gray-600 flex items-center gap-1.5">
-                <CheckCircle2 size={14} className="text-green-600" /> Route Suggestion
+                <CheckCircle2 size={16} className="text-green-600" /> Route Suggestion
               </span>
             </div>
 
-            <div className="p-4 space-y-4">
+            <div className="p-5 space-y-5">
               
               {/* Highlighted Prominent Safety Index */}
               <div 
@@ -344,54 +346,53 @@ const SafeRouteTab: React.FC = () => {
               </div>
 
               {/* Driving ETA / Dist */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-gray-50 rounded-lg p-3 border border-gray-100 flex flex-col items-center">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-100 flex flex-col items-center">
                   <div className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-1 flex items-center gap-1"><Footprints size={12}/> Walking Time</div>
-                  <div className="text-xl font-black text-gray-900 flex items-center gap-1.5">
+                  <div className="text-2xl font-black text-gray-900 flex items-center gap-1.5">
                     {formatETA(safeData.properties.duration)}
                   </div>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-3 border border-gray-100 flex flex-col items-center">
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-100 flex flex-col items-center">
                   <div className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-1">Distance</div>
-                  <div className="text-xl font-black text-gray-900 flex items-center gap-1.5">
+                  <div className="text-2xl font-black text-gray-900 flex items-center gap-1.5">
                     {formatDist(safeData.properties.distance)}
                   </div>
                 </div>
               </div>
 
               {safeData.properties.high_risk_zones > 0 && (
-                <div className="flex items-start gap-2 text-sm text-red-600 font-medium bg-red-50 p-2.5 rounded-lg border border-red-100">
-                  <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" /> 
+                <div className="flex items-start gap-2 text-sm text-red-600 font-medium bg-red-50 p-3 rounded-lg border border-red-100">
+                  <AlertTriangle size={18} className="mt-0.5 flex-shrink-0" /> 
                   Passes through {safeData.properties.high_risk_zones} high-risk zone{safeData.properties.high_risk_zones > 1 ? "s" : ""}. Proceed with appropriate caution.
                 </div>
               )}
               {safeData.properties.high_risk_zones === 0 && (
-                <div className="flex items-start gap-2 text-sm text-green-700 font-medium bg-green-50 p-2.5 rounded-lg border border-green-100">
-                  <ShieldCheck size={16} className="mt-0.5 flex-shrink-0" /> 
+                <div className="flex items-start gap-2 text-sm text-green-700 font-medium bg-green-50 p-3 rounded-lg border border-green-100">
+                  <ShieldCheck size={18} className="mt-0.5 flex-shrink-0" /> 
                   This route strictly avoids all major known high-risk crime zones.
                 </div>
               )}
             </div>
           </div>
         )}
-        </div>
       </div>
 
-      {/* ── Map Area ── */}
-      <div className="w-full lg:flex-1 border border-gray-200 rounded-lg overflow-hidden shadow-sm relative z-0 flex flex-col bg-gray-50">
+      {/* ── Map Area (Right Side - Sticky) ── */}
+      <div className="w-full lg:flex-1 h-[500px] lg:h-[750px] border border-gray-200 rounded-xl overflow-hidden shadow-sm relative z-0 flex flex-col bg-gray-50 lg:sticky top-6">
         
         {/* Map Type Toggle */}
         <div className="absolute top-4 right-4 z-[1000] bg-white rounded-lg shadow-md border border-gray-200 flex overflow-hidden">
           <button 
             onClick={() => setMapType("standard")}
-            className={`px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 ${mapType === "standard" ? "bg-blue-50 text-blue-600" : "text-gray-500 hover:bg-gray-50"}`}
+            className={`px-4 py-2 text-xs font-bold flex items-center gap-1.5 ${mapType === "standard" ? "bg-blue-50 text-blue-600" : "text-gray-500 hover:bg-gray-50"}`}
           >
             <MapIcon size={14} /> Map
           </button>
           <div className="w-px bg-gray-200"></div>
           <button 
             onClick={() => setMapType("satellite")}
-            className={`px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 ${mapType === "satellite" ? "bg-blue-50 text-blue-600" : "text-gray-500 hover:bg-gray-50"}`}
+            className={`px-4 py-2 text-xs font-bold flex items-center gap-1.5 ${mapType === "satellite" ? "bg-blue-50 text-blue-600" : "text-gray-500 hover:bg-gray-50"}`}
           >
             <Layers size={14} /> Satellite
           </button>
@@ -429,7 +430,7 @@ const SafeRouteTab: React.FC = () => {
 
         {loading && (
           <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none bg-white/40 backdrop-blur-sm transition-all duration-300">
-            <div className="bg-white px-6 py-4 rounded-xl shadow-lg border border-gray-100 flex items-center gap-3 font-semibold text-blue-700">
+            <div className="bg-white px-6 py-4 rounded-xl shadow-xl border border-gray-100 flex items-center gap-3 font-semibold text-blue-700">
               <span className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full" />
               Calculating Safe Route...
             </div>
@@ -437,25 +438,25 @@ const SafeRouteTab: React.FC = () => {
         )}
 
         {/* Legend */}
-        <div className={`absolute bottom-4 left-4 p-3.5 rounded-lg shadow-md border z-[1000] text-sm pointer-events-none ${
-          mapType === "satellite" ? "bg-black/70 backdrop-blur-md border-white/20 text-white" : "bg-white/95 backdrop-blur-sm border-gray-200 text-gray-800"
+        <div className={`absolute bottom-5 left-5 p-4 rounded-xl shadow-md border z-[1000] text-sm pointer-events-none ${
+          mapType === "satellite" ? "bg-black/80 backdrop-blur-md border-white/20 text-white" : "bg-white/95 backdrop-blur-sm border-gray-200 text-gray-800"
         }`}>
-          <h4 className={`font-bold mb-2 text-[10px] uppercase tracking-wider border-b pb-1.5 ${mapType === "satellite" ? "text-gray-300 border-white/20" : "text-gray-500 border-gray-200"}`}>
+          <h4 className={`font-bold mb-3 text-[10px] uppercase tracking-wider border-b pb-2 ${mapType === "satellite" ? "text-gray-300 border-white/20" : "text-gray-500 border-gray-200"}`}>
             Map Legend
           </h4>
-          <div className="flex items-center gap-2.5 mb-2.5">
-            <div className="w-4 h-1.5 rounded-full bg-green-500 shadow-sm" />
+          <div className="flex items-center gap-2.5 mb-3">
+            <div className="w-5 h-1.5 rounded-full bg-green-500 shadow-sm" />
             <span className="font-bold text-xs">Safe Walking Route</span>
           </div>
-          <div className={`space-y-1.5 text-xs font-medium ${mapType === "satellite" ? "text-gray-200" : "text-gray-600"}`}>
+          <div className={`space-y-2 text-xs font-medium ${mapType === "satellite" ? "text-gray-200" : "text-gray-600"}`}>
             <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm" /> High Crime Density
+              <div className="w-3 h-3 rounded-full bg-red-500 shadow-sm" /> High Crime Density
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-yellow-400 shadow-sm" /> Medium Density
+              <div className="w-3 h-3 rounded-full bg-yellow-400 shadow-sm" /> Medium Density
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-blue-300 shadow-[0_0_2px_rgba(255,255,255,0.5)]" /> Low Density / Safe
+              <div className="w-3 h-3 rounded-full bg-blue-300 shadow-[0_0_2px_rgba(255,255,255,0.5)]" /> Low Density / Safe
             </div>
           </div>
         </div>
