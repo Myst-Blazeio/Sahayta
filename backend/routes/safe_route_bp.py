@@ -146,7 +146,13 @@ def fetch_osrm_route(slat, slng, elat, elng, mode):
         route  = data["routes"][0]
         coords = route["geometry"]["coordinates"]
         dist   = route["distance"]
-        dur    = route["duration"] * TRAFFIC_FACTORS.get(mode, 1.5)
+        
+        # Calculate realistic ETA based on pure distance for walking (average human speed ~1.38 m/s which is ~5 km/h)
+        if mode == 'walking':
+            dur = dist / 1.38
+        else:
+            dur = route["duration"] * TRAFFIC_FACTORS.get(mode, 1.5)
+            
         del data          # free full parsed JSON
         return {"coords": coords, "distance": dist, "duration": dur}, None
     except requests.Timeout:
