@@ -68,6 +68,45 @@ Sahayta utilizes a hybrid ensemble of heuristic, statistical, and machine learni
 
 The text-to-law mapping algorithm acts as a specialized Information Retrieval System (IRS). It operates entirely within a bounded RAM footprint without reliance on massive dense transformer models natively.
 
+```mermaid
+flowchart TD
+    A[Raw Citizen FIR Text 📝] --> B(FIR Preprocessor)
+
+    subgraph Preprocessing & Normalization
+        B --> C[Regex Clean: Remove Dates/Times]
+        C --> D[Stop-word Elimination]
+        D --> E{Match Crime Keywords}
+    end
+
+    E -- Match Found --> F[Inject Keywords 3x Boost]
+    E -- No Match --> G[Proceed Standard]
+
+    F --> H
+    G --> H
+
+    subgraph BM25 Retrieval Engine
+        H[Construct Normalized Query Q] --> I[(Tokenized BNS Corpus)]
+        I --> J[Calculate BM25 Score per Section]
+    end
+
+    J --> K{Keyword Re-Ranking}
+
+    subgraph Post-Retrieval Adjustments
+        K -- Section text contains Query Keyword --> L[+25% Scalar Bonus added]
+        K -- No keyword match in text --> M[Keep Base Score]
+    end
+
+    L --> N
+    M --> N
+
+    N[Sort descending by Final Score] --> O[🏆 Top-K Predicted BNS Sections]
+
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style O fill:#bbf,stroke:#333,stroke-width:2px
+    style B fill:#e1f5fe,stroke:#01579b
+    style I fill:#e8f5e9,stroke:#2e7d32
+```
+
 #### A. FIR Preprocessing & Keyword Injection
 
 Unstructured FIR input text $T$ undergoes:
