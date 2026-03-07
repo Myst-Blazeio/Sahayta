@@ -1,11 +1,10 @@
 <div align="center">
 
-# 🛡️ Sahayta — AI-Powered FIR Automation System
+# 🛡️ Sahayta — AI-Powered FIR & Crime Intelligence System
 
-**A full-stack AI platform that automates FIR (First Information Report) filing, BNS section prediction, safe route analysis, and crime intelligence for law enforcement in India.**
+**A full-stack, research-driven AI platform automating First Information Report (FIR) filing, semantic legal section (BNS) prediction, and geospatial crime intelligence for law enforcement.**
 
 [![Live Frontend](https://img.shields.io/badge/Frontend-GitHub%20Pages-blue?logo=github)](https://myst-blazeio.github.io/Sahayta/)
-[![Backend API](https://img.shields.io/badge/Backend-Render-green?logo=render)](https://final-year-project-xabd.onrender.com)
 [![Python](https://img.shields.io/badge/Python-3.10+-yellow?logo=python)](https://python.org)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://react.dev)
 [![Flask](https://img.shields.io/badge/Flask-3.x-black?logo=flask)](https://flask.palletsprojects.com)
@@ -15,472 +14,216 @@
 
 ---
 
+## 📑 Abstract
+
+**Sahayta** (Bengali: সহায়তা — _assistance_) is a comprehensive, intelligent law enforcement platform designed to digitise and automate the processing of First Information Reports (FIRs). It supersedes traditional paper-based systems by introducing predictive crime analytics, real-time safe-route navigation, and automated legal mapping.
+
+The system's core innovation lies in its multi-tiered Natural Language Processing (NLP) architecture, which maps unconstrained natural language complaints from citizens directly to specific Indian legal statutes (Bharatiya Nyaya Sanhita - BNS sections). Furthermore, the platform integrates a geospatial routing engine with a historical crime incidence model to compute dynamic, risk-aware navigation paths for citizens, optimizing for physical safety based on geographic crime densities.
+
+---
+
 ## 📋 Table of Contents
 
-- [Overview](#overview)
-- [Live Deployment](#live-deployment)
-- [Key Features](#key-features)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Architecture](#architecture)
-- [Performance Optimizations](#performance-optimizations)
+- [Abstract](#abstract)
+- [System Architecture](#system-architecture)
+- [Mathematical Models & Algorithms](#mathematical-models--algorithms)
+  - [1. BNS Section Prediction (NLP & IRS)](#1-bns-section-prediction-nlp--irs)
+  - [2. Geospatial Safe Routing Engine](#2-geospatial-safe-routing-engine)
+  - [3. Spatiotemporal Crime Prediction](#3-spatiotemporal-crime-prediction)
+- [Memory & Performance Optimizations](#memory--performance-optimizations)
 - [API Reference](#api-reference)
-- [ML Models](#ml-models)
-- [Getting Started (Local)](#getting-started-local)
-- [Environment Variables](#environment-variables)
-- [Deployment](#deployment)
-- [Contributing](#contributing)
+- [Getting Started & Installation](#getting-started--installation)
+- [License](#license)
 
 ---
 
-## Overview
+## 🏗️ System Architecture
 
-**Sahayta** (Bengali: সহায়তা — _assistance_) is a Final Year Project that modernises FIR handling in Indian police stations through AI/ML automation.
+The project is structured as a decentralized, API-first architecture, separating the client-side presentation layer from the heavy computational and machine learning microservices.
 
-Citizens can file FIRs online. The backend **automatically suggests relevant BNS (Bharatiya Nyaya Sanhita) sections** for each report using a BM25 semantic search engine powered by FIR keyword preprocessing and re-ranking. Police officers access a server-rendered dashboard to manage reports, view crime analytics, and use AI-powered safe route navigation.
-
-Key achievements over a traditional paper-based system:
-
-- ⚡ Instant BNS section suggestions — no manual legal lookup required
-- 🗺️ Real-time safe route planning using live crime risk data (OSRM API + Leaflet)
-- 📊 Ward-level crime prediction using a trained scikit-learn model
-- 🔐 Dual-portal authentication (citizens & police) with JWT + role-based access
-
----
-
-## Live Deployment
-
-| Service                     | URL                                                  | Platform           |
-| --------------------------- | ---------------------------------------------------- | ------------------ |
-| **Citizen/Police Frontend** | https://myst-blazeio.github.io/Sahayta/              | GitHub Pages       |
-| **Backend REST API**        | https://final-year-project-xabd.onrender.com         | Render (free tier) |
-| **Police Server Portal**    | https://final-year-project-xabd.onrender.com/police/ | Render             |
-
-> **Note:** The Render backend is on the free tier and may take 30–60s to wake from sleep on first request.
-
----
-
-## Key Features
-
-### 🧑‍💼 Citizen Portal (React SPA)
-
-| Feature                          | Description                                                                                   |
-| -------------------------------- | --------------------------------------------------------------------------------------------- |
-| **Citizen Registration & Login** | JWT-authenticated sessions                                                                    |
-| **FIR Filing**                   | Multi-step form with validation, auto-translate (Bengali/Hindi → English via Deep Translator) |
-| **AI BNS Suggestions**           | Real-time BNS section predictions shown while filing                                          |
-| **Dashboard**                    | Track live status of submitted FIRs                                                           |
-| **PDF Export**                   | Download filed FIR as formatted PDF (jsPDF)                                                   |
-| **Safe Route Advisor**           | Interactive Leaflet map showing safest paths based on ward crime scores                       |
-
-### 👮 Police Portal (Server-rendered Flask + JS)
-
-| Feature                 | Description                                                                              |
-| ----------------------- | ---------------------------------------------------------------------------------------- |
-| **Login**               | JWT cookie-based session, role-enforced access                                           |
-| **FIR Inbox**           | View, search, filter all incoming FIRs                                                   |
-| **FIR Management**      | Update status (Received → Under Investigation → Resolved), assign officers               |
-| **Crime Analytics**     | Interactive charts — FIR trends by ward, time, and category                              |
-| **Crime Prediction**    | AI prediction of expected crime count per ward/month using a trained Random Forest model |
-| **Intelligence Search** | Natural language BNS section lookup                                                      |
-| **Alert System**        | Ward-level crime spike alerts                                                            |
-
----
-
-## Tech Stack
-
-### Frontend
-
-| Layer       | Technology                 |
-| ----------- | -------------------------- |
-| Framework   | React 18 + TypeScript      |
-| Build Tool  | Vite 7                     |
-| Routing     | React Router DOM v6        |
-| HTTP Client | Axios                      |
-| Maps        | Leaflet.js + React-Leaflet |
-| Charts      | Recharts                   |
-| Animations  | Framer Motion              |
-| PDF         | jsPDF + jspdf-autotable    |
-| Styling     | Tailwind CSS               |
-
-### Backend
-
-| Layer                 | Technology                                             |
-| --------------------- | ------------------------------------------------------ |
-| Framework             | Flask 3                                                |
-| Auth                  | Flask-JWT-Extended                                     |
-| Database              | MongoDB (Flask-PyMongo)                                |
-| ML — BNS Search       | BM25Okapi (rank-bm25) + TF-IDF fallback (scikit-learn) |
-| ML — Crime Prediction | scikit-learn Random Forest                             |
-| Translation           | Deep Translator (Google Translate)                     |
-| Maps/Routing          | OSRM Public API + Nominatim API                        |
-| CORS                  | Flask-CORS                                             |
-| Production Server     | Gunicorn                                               |
-
----
-
-## Project Structure
-
-```
-Sahayta/
-├── frontend/                      # React TypeScript SPA
-│   ├── src/
-│   │   ├── App.tsx                # Root router (public + protected routes)
-│   │   ├── api/                   # Axios service layer
-│   │   │   ├── authService.ts     # Login, register, logout
-│   │   │   ├── firService.ts      # FIR CRUD & AI suggestions
-│   │   │   └── policeService.ts   # Police dashboard API calls
-│   │   ├── components/            # Shared UI components
-│   │   │   ├── ProtectedRoute.tsx # JWT role-based route guard
-│   │   │   └── ...
-│   │   ├── pages/
-│   │   │   ├── auth/              # Login, CitizenSignup
-│   │   │   ├── citizen/           # Dashboard, FileFIR, SafeRouteTab
-│   │   │   └── police/            # Police-facing pages (redirects to server portal)
-│   │   ├── context/               # React context (auth state)
-│   │   └── types/                 # TypeScript interfaces
-│   ├── vite.config.ts
-│   └── package.json
-│
-├── backend/                       # Flask REST API + server-rendered police portal
-│   ├── app.py                     # App factory, blueprint registration, keep-alive
-│   ├── config.py                  # Config class (Dev/Prod), env var paths
-│   ├── db.py                      # PyMongo initialization
-│   ├── ml_service.py              # ML singleton: BM25 BNS search + crime prediction
-│   ├── requirements.txt
-│   │
-│   ├── routes/
-│   │   ├── auth_routes.py         # /api/auth — login, register, me, logout
-│   │   ├── fir_routes.py          # /api/fir  — file, list, update FIRs; BNS suggestions
-│   │   ├── police_routes.py       # /api/police — dashboard stats, inbox, analytics, alerts
-│   │   ├── intelligence_routes.py # /api/intelligence — BNS lookup, crime prediction
-│   │   ├── safe_route_bp.py       # /api/safe-route — OSRM routing + crime risk scoring
-│   │   └── police_views.py        # /police — server-rendered HTML portal (Jinja2)
-│   │
-│   ├── templates/                 # Jinja2 HTML templates for police portal
-│   │   ├── base.html              # Base layout (navbar, profile modal, snackbar)
-│   │   ├── index.html             # Police dashboard
-│   │   ├── fir_inbox.html
-│   │   ├── fir_archive.html
-│   │   ├── analytics.html
-│   │   ├── intelligence.html
-│   │   └── alerts.html
-│   │
-│   ├── static/                    # Static assets for the police portal
-│   │   ├── css/
-│   │   └── js/
-│   │       ├── police_dashboard.js
-│   │       └── map.js
-│   │
-│   ├── assets/
-│   │   └── models/
-│   │       ├── bns/
-│   │       │   ├── bns_assets.pkl     # Raw BNS DataFrame + SentenceTransformer embeddings
-│   │       │   ├── bns_bm25.pkl       # BM25Okapi index (primary, ~1.2 MB)
-│   │       │   └── bns_tfidf.pkl      # TF-IDF index (fallback, ~2.4 MB)
-│   │       └── crime_prediction/
-│   │           └── crime_model.pkl    # Trained sklearn crime prediction model
-│   │
-│   ├── scripts/
-│   │   └── build_bns_index.py         # Rebuild bns_bm25.pkl + bns_tfidf.pkl from CSV
-│   │
-│   └── tests/
-│       ├── test_ml_service.py         # Smoke tests for ML predictions
-│       └── test_bns_dynamic.py        # Dynamic input length tests for BNS
-│
-└── scripts/                           # Root-level utility scripts
-    ├── start_backend.bat              # Start Flask backend (Windows, one-click)
-    ├── start_frontend.bat             # Start Vite dev server (Windows, one-click)
-    ├── build_models.bat               # Rebuild ML indexes (Windows)
-    ├── inspect_pkl.py                 # Universal .pkl file inspector
-    └── crime_kolkata.csv              # Raw crime dataset used to train models
+```mermaid
+graph TD
+    A[React SPA / Citizen Interface] -->|HTTPS / REST| B(Flask Gunicorn Backend)
+    B --> C{ML Service Singleton}
+    B --> D[(MongoDB Atlas)]
+    C -->|Lazy Load| E[BM25 / TF-IDF NLP Index]
+    C -->|Lazy Load| F[Random Forest Regressor]
+    B -->|Geospatial Queries| G[OSRM Public API]
+    B -->|Geocoding| H[Nominatim API]
 ```
 
----
+### Full-Stack Implementation
 
-## Architecture
-
-```
-┌─────────────────────┐        HTTPS        ┌──────────────────────────────────────────┐
-│   GitHub Pages      │◄────────────────────►│         Render (Flask + Gunicorn)        │
-│   (React SPA)       │     Axios / REST     │                                          │
-│                     │                      │  ┌─────────────┐  ┌────────────────────┐ │
-│  Citizen Portal     │                      │  │  Auth API   │  │   Police Portal    │ │
-│  • File FIR         │                      │  │  (JWT)      │  │   (Jinja2 HTML)    │ │
-│  • Track FIRs       │                      │  └──────┬──────┘  └────────────────────┘ │
-│  • Safe Routes      │                      │         │                                 │
-│                     │                      │  ┌──────▼──────────────────────────────┐ │
-└─────────────────────┘                      │  │         ml_service.py (Singleton)    │ │
-                                             │  │  Lazy Loaded BM25 / TF-IDF Search   │ │
-                                             │  │  Lazy Loaded RF Crime Predictor     │ │
-                                             │  └──────────────────────────────────────┘ │
-                                             │                     │                     │
-                                             │  ┌──────────────────▼──────────────────┐ │
-                                             │  │        MongoDB Atlas                 │ │
-                                             │  │  Collections: users, firs, alerts   │ │
-                                             │  └─────────────────────────────────────┘ │
-                                             └──────────────────────────────────────────┘
-```
+- **Frontend Layer**: Built using React 18, TypeScript, and Vite. Implements JWT-authenticated sessions, Leaflet maps with heatmaps (`leaflet.heat`), dynamic Recharts analytics, and Framer Motion for UI fluidity.
+- **Backend & Inference Layer**: Developed in Flask 3. Runs a memory-optimized ML Singleton that handles on-demand inference. Models are loaded directly into the Gunicorn master process and shared across workers using Copy-on-Write (COW) semantics.
+- **Persistence Layer**: MongoDB Atlas, managing relational integrity through document references across `users`, `firs`, and `alerts` collections.
 
 ---
 
-## API Reference
+## 🧠 Mathematical Models & Algorithms
 
-All endpoints require `Authorization: Bearer <JWT>` unless marked public.
+Sahayta utilizes a hybrid ensemble of heuristic, statistical, and machine learning techniques tailored for a resource-constrained production environment (maximum 512 MB RAM allocation).
 
-### Auth (`/api/auth`)
+### 1. BNS Section Prediction (NLP & IRS)
 
-| Method | Endpoint    | Auth   | Description              |
-| ------ | ----------- | ------ | ------------------------ |
-| POST   | `/login`    | Public | Login → returns JWT      |
-| POST   | `/register` | Public | Citizen registration     |
-| GET    | `/me`       | JWT    | Get current user profile |
-| POST   | `/logout`   | JWT    | Invalidate session       |
+The text-to-law mapping algorithm acts as a specialized Information Retrieval System (IRS). It operates entirely within a bounded RAM footprint without reliance on massive dense transformer models natively.
 
-### FIR (`/api/fir`)
+#### A. FIR Preprocessing & Keyword Injection
 
-| Method | Endpoint       | Auth        | Description                            |
-| ------ | -------------- | ----------- | -------------------------------------- |
-| POST   | `/file`        | Citizen JWT | File a new FIR (auto BNS suggestion)   |
-| GET    | `/my-firs`     | Citizen JWT | List citizen's own FIRs                |
-| GET    | `/status/<id>` | Citizen JWT | Get single FIR status                  |
-| POST   | `/suggest-bns` | JWT         | Get BNS suggestions for arbitrary text |
+Unstructured FIR input text $T$ undergoes:
 
-### Police (`/api/police`)
+1. Regex sanitization (stripping temporal data, dates, and domain-specific boilerplate like _"To the station house officer"_).
+2. Stop-word elimination using a curated, domain-specific `_EN_STOPWORDS` set.
+3. Crime Keyword Extraction: Intersecting the $T$ with a manually curated multi-dimensional set of 84 crime definitions $K$.
 
-| Method | Endpoint           | Auth       | Description             |
-| ------ | ------------------ | ---------- | ----------------------- |
-| GET    | `/inbox`           | Police JWT | All pending FIRs        |
-| PATCH  | `/fir/<id>/status` | Police JWT | Update FIR status       |
-| GET    | `/analytics`       | Police JWT | Crime analytics data    |
-| GET    | `/alerts`          | Police JWT | Ward-level crime alerts |
-| GET    | `/stats`           | Police JWT | Dashboard summary stats |
+If $K_{detected} = K \cap T \neq \emptyset$, the system injects $3 \times K_{detected}$ at the head of the token sequence to heavily bias the subsequent retrieval probability density towards the core offense.
 
-### Intelligence (`/api/intelligence`)
+#### B. BM25 (Okapi) Retrieval
 
-| Method | Endpoint         | Auth       | Description            |
-| ------ | ---------------- | ---------- | ---------------------- |
-| POST   | `/predict_bns`   | Police JWT | BNS section search     |
-| POST   | `/predict_crime` | Police JWT | Crime count prediction |
+The core retrieval mechanism uses the BM25 ranking function, known for handling document length normalization superior to standard TF-IDF.
+Given query $Q$ containing keywords $q_1, q_2, \dots, q_n$, the score for BNS Document $D$ is:
 
-### Safe Route (`/api/safe-route`)
+$$
+\text{Score}_{BM25}(D, Q) = \sum_{i=1}^{n} \text{IDF}(q_i) \cdot \frac{f(q_i, D) \cdot (k_1 + 1)}{f(q_i, D) + k_1 \cdot \left(1 - b + b \cdot \frac{|D|}{\text{avgdl}}\right)}
+$$
 
-| Method | Endpoint             | Auth   | Description                       |
-| ------ | -------------------- | ------ | --------------------------------- |
-| GET    | `/`                  | Public | OSRM route + crime risk scoring   |
-| GET    | `/geocode`           | Public | Geocode an address via Nominatim  |
-| GET    | `/reverse-geocode`   | Public | Reverse geocode a lat/lng         |
-| GET    | `/autocomplete`      | Public | Address suggestions via Nominatim |
-| GET    | `/crime-predictions` | Public | Raw crime risk points for a bbox  |
+_Where:_
+
+- $f(q_i, D)$ is the term frequency of $q_i$ in Document $D$.
+- $|D|$ is the length of the document in words.
+- $\text{avgdl}$ is the average document length in the corpus.
+- Constants $k_1 = 1.5$ and $b = 0.75$.
+
+#### C. Linear Keyword Bonus Re-ranking
+
+To overcome vocabulary mismatch and short-document saturation, a post-retrieval scalar bonus is applied. For each document $D$ in the candidate response set:
+
+$$
+\text{Score}_{final} = \text{Score}_{BM25} + \left( \max(\text{Score}_{BM25}) \cdot \beta \cdot |K_{\text{hit}}| \right)
+$$
+
+_Where:_ $\beta = 0.25$ (empirically tuned) and $K_{\text{hit}}$ is the intersection of query crime keywords and the specific BNS section text.
+
+_Fallback mechanism:_ Standard Vector-Space Model (VSM) using TF-IDF and Cosine Similarity ($cos(\theta) = \frac{A \cdot B}{||A|| ||B||}$) activates if the BM25 payload fails memory allocation.
 
 ---
 
-## Performance Optimizations
+### 2. Geospatial Safe Routing Engine
 
-Sahayta is deployed on Render's **free tier (512 MB RAM, 1 CPU)**. The following architectural decisions keep the backend within those limits:
+The routing engine calculates safe paths for pedestrians by evaluating historical crime topography.
 
-| Optimization                      | Details                                                                                                                                                                                                                                                      |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Removed `osmnx` / `networkx`**  | The old implementation loaded a 40 MB `kolkata_drive_graph.graphml` into RAM and computed routes using NetworkX, consuming 300–350 MB at idle. This has been completely removed.                                                                             |
-| **OSRM API for routing**          | Route calculations are now delegated to the free public [OSRM API](http://router.project-osrm.org). The backend simply makes an outbound HTTP request, uses zero extra RAM, and combines the returned route geometry with local crime data for risk scoring. |
-| **Nominatim API for geocoding**   | Replaced `geopy` with direct `requests` calls to the free [Nominatim API](https://nominatim.openstreetmap.org), eliminating another unused dependency.                                                                                                       |
-| **ML model lazy loading**         | `ml_service.py` previously loaded both the BNS text index (~120 MB) and Crime Prediction model (~150 MB) simultaneously on the first ML request. Each model now loads independently and only when its specific endpoint is called.                           |
-| **Aggressive garbage collection** | `gc.collect()` is called after each model prediction and after loading, ensuring Pandas DataFrames and intermediate NumPy arrays are released immediately.                                                                                                   |
-| **Frontend map rendering**        | The map was previously an `<iframe>` loading a server-generated Folium HTML file per request. It is now rendered entirely client-side using **React-Leaflet** + **Leaflet.heat**, with the backend only serving a lightweight JSON array of crime points.    |
+#### A. Trajectory Risk Estimation
 
----
+Let the geographic route trajectory $R$ returned by OSRM be a sequence of interconnected coordinate nodes: $R = [p_1, p_2, \dots, p_m]$ where $p_i = (\text{lat}_i, \text{lng}_i)$.
+Historical crime clusters are modeled as points $C = [c_1, c_2, \dots, c_k]$.
 
-## ML Models
+For a sampled subset of route nodes $R' \subset R$ (stride optimized to $N/60$ points), the engine queries the Euclidean distance against crime clusters. An interaction mask is generated using a squared tolerance radius of $r^2 = 6.4 \times 10^{-5}$ (approx $800 \text{ meters}$ in projection space).
 
-### BNS Section Prediction (`ml_service.predict_bns`)
+$$
+\text{Distance}^2(p_i, c_j) = (\text{lat}_{c_j} - \text{lat}_{p_i})^2 + (\text{lng}_{c_j} - \text{lng}_{p_i})^2
+$$
 
-A **three-layer pipeline** that operates entirely within 512 MB RAM (no torch / GPU):
+Mean Risk ($\mu_{risk}$) is computed over the exposed trajectory:
 
-```
-Raw FIR Text
-    │
-    ▼
-FIRPreprocessor
-  • Strip dates, times, boilerplate phrases
-  • Detect crime keywords from curated list of 80+ terms
-  • Inject detected keywords (3×) at front of query for weight boosting
-    │
-    ▼
-BM25Okapi Search
-  • Tokenized corpus of 358 BNS sections
-  • Returns top-k candidates by BM25 score
-    │
-    ▼
-Keyword Re-Ranking
-  • +25% bonus per keyword that appears in a candidate section's text
-  • Re-sorts top candidates for maximum relevance
-    │
-    ▼
-Top-k BNS Sections (with similarity scores)
-```
+$$
+\mu_{risk} = \frac{1}{|R'|} \sum_{p \in R'} \text{LocalRisk}(p)
+$$
 
-**Fallback:** If `bns_bm25.pkl` is not found, falls back to TF-IDF cosine similarity (also with FIRPreprocessor query normalization).
+#### B. Realistic Distance-Based ETA Calculation
 
-### Crime Prediction (`ml_service.predict_crime`)
+A strict, physics-based kinematic formula is enforced to ensure pedestrian ETA accuracy. OSRM engine durations (designed for vehicular throughput) are overridden.
+ETA ($T$) is derived directly from geographic route length ($D$) assuming standard human walking velocity ($v \approx 1.38 \text{ m/s}$ or $5.0 \text{ km/h}$).
 
-- **Model:** scikit-learn Random Forest Regressor
-- **Input:** `ward` (int), `year` (int), `month` (int)
-- **Output:** Predicted crime count for that ward/month combination
-- **Training data:** `scripts/crime_kolkata.csv` — Kolkata ward crime dataset
+$$
+T_{walk} = \frac{D}{1.38} + \mathcal{P}(\mu_{risk})
+$$
 
-> ⚡ **Memory Optimization:** Both the BNS text index and the Crime Prediction model are strictly **lazy-loaded** and proactively garbage collected. This prevents Out-Of-Memory (OOM) crashes on the 512MB RAM Render free tier.
+Where $\mathcal{P}$ is a non-linear temporal penalty applied to "safe routes" representing the delay incurred by systematically routing around high-density threat perimeters.
 
 ---
 
-## Getting Started (Local)
+### 3. Spatiotemporal Crime Prediction
 
-### Prerequisites
+A predictive analytics module estimates the expected volume of specific complaints geographically.
 
-- **Python 3.10+** — [python.org](https://python.org)
-- **Node.js 18+** — [nodejs.org](https://nodejs.org)
-- **MongoDB** — local or [MongoDB Atlas](https://mongodb.com/atlas) (free tier works)
-- **Git**
+- **Model:** Random Forest Regressor (Scikit-Learn).
+- **Input Vector ($X$):** $[\text{Ward}_{\text{encoded}}, \text{Year}, \text{Month}]$.
+- **Target ($Y$):** Total aggregated crime incidence.
 
-### Option A — One-click (Windows)
+The ensemble operates by constructing a multitude of decision trees at training time and outputting the mean prediction of the individual trees, providing high variance resistance and minimizing Out-of-Bag (OOB) error.
 
-```bat
-# Start backend (creates venv, installs deps, builds ML indexes if needed)
-scripts\start_backend.bat
+---
 
-# In a new terminal, start frontend
-scripts\start_frontend.bat
-```
+## ⚡ Memory & Performance Optimizations
 
-### Option B — Manual
+The software architecture complies with strict Low-Memory footprint paradigms:
 
-#### Backend
+1. **Model Lazy-Loading:** The `MLService` singleton defers memory allocation for `.pkl` models until the exact API route requires inference.
+2. **Explicit Garbage Collection:** The `gc.collect()` interface is invoked manually inside routing iteration blocks to flush intermediate NumPy arrays and OSRM JSON payloads, bypassing standard cyclic reference delays.
+3. **Graph Deprecation:** Removed heavily memory-bound `osmnx` and `networkx` graph topology mapping. Replaced entirety of pathfinding logic with OSRM HTTP offloading.
+
+---
+
+## 📡 API Reference
+
+_Authentication: Bearer JWT is required for all endpoints except those marked `Public`._
+
+### Core Endpoints
+
+| Method   | Endpoint                        | Access        | Purpose                                                        |
+| -------- | ------------------------------- | ------------- | -------------------------------------------------------------- |
+| **POST** | `/api/auth/login`               | Public        | Obtains JWT access token.                                      |
+| **POST** | `/api/fir/file`                 | Authenticated | Submits unstructured FIr, triggers BNS AI.                     |
+| **POST** | `/api/intelligence/predict_bns` | Authenticated | Exposes raw access to BM25 Natural Language engine.            |
+| **GET**  | `/api/safe-route/`              | Public        | Returns GeoJSON FeatureCollection with Risk Stats & Routing.   |
+| **GET**  | `/api/police/analytics`         | Auth (Police) | Retrieves temporal and categorical aggregations for dashboard. |
+
+---
+
+## 🚀 Getting Started & Installation
+
+### Local Development Setup
+
+Ensure you have **Python 3.10+** and **Node.js 18+** installed along with access to a MongoDB cluster.
+
+**1. Clone and Boot Backend**
 
 ```bash
-cd backend
+git clone https://github.com/Myst-Blazeio/Sahayta.git
+cd Sahayta/backend
 
-# Create and activate virtual environment
-python -m venv final_venv
-final_venv\Scripts\activate      # Windows
-# source final_venv/bin/activate  # macOS/Linux
+# Initialize Virtual Env
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Install dependencies
+# Install Core ML & API Dependencies
 pip install -r requirements.txt
 
-# Build ML indexes (required before first run)
+# Hydrate the NLP Text Corpus (Builds index binaries)
 python scripts/build_bns_index.py
 
-# Copy and fill in environment variables
-cp .env.example .env
-# Edit .env with your MONGO_URI, JWT_SECRET_KEY, etc.
-
-# Start the server
+# Launch WSGI / Flask Dev Server
 python app.py
 ```
 
-Backend runs at: **http://localhost:5000**
-Police portal: **http://localhost:5000/police**
-
-#### Frontend
+**2. Boot Frontend Interface**
 
 ```bash
-cd frontend
+cd ../frontend
 
 npm install
-
-# Copy environment file
-cp .env.example .env.local
-# Set VITE_API_BASE_URL=http://localhost:5000
-
 npm run dev
 ```
 
-Frontend runs at: **http://localhost:5173**
+The system will boot mapping `localhost:5000` to the inference engine and `localhost:5173` to the citizen interface.
 
 ---
 
-## Environment Variables
+## 📜 License
 
-### Backend (`backend/.env`)
-
-```env
-# Flask
-SECRET_KEY=your_flask_secret_key
-FLASK_ENV=development
-
-# Database
-MONGO_URI=mongodb+srv://<user>:<pass>@cluster.mongodb.net/fir_automation
-
-# Auth
-JWT_SECRET_KEY=your_jwt_secret
-
-# Keep-alive (optional, for Render free tier)
-KEEP_ALIVE_URL=https://your-app.onrender.com/health
-```
-
-### Frontend (`frontend/.env.local`)
-
-```env
-VITE_API_BASE_URL=http://localhost:5000
-```
-
-In production (GitHub Pages), set `VITE_API_BASE_URL` to your Render backend URL.
-
----
-
-## Deployment
-
-### Backend → Render
-
-1. Push to GitHub (`main` branch)
-2. Create a new **Web Service** on [render.com](https://render.com)
-3. Set **Build Command:**
-   ```bash
-   pip install -r backend/requirements.txt && python backend/scripts/build_bns_index.py
-   ```
-4. Set **Start Command:**
-   ```bash
-   gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --preload --timeout 120
-   ```
-   > ⚠️ `--preload` is critical: it loads ML models once in the Gunicorn master and shares memory with workers via copy-on-write, preventing OOM crashes on the Render free tier (512 MB RAM).
-5. Add environment variables in the Render dashboard (see [Environment Variables](#environment-variables))
-
-### Frontend → GitHub Pages
-
-```bash
-cd frontend
-npm run deploy      # builds and pushes to gh-pages branch automatically
-```
-
-Configure `vite.config.ts` `base` path to match your GitHub Pages repo path.
-
----
-
-## Default Test Credentials
-
-> For local/demo testing only. Do NOT use in production.
-
-| Role           | Email                        | Password   |
-| -------------- | ---------------------------- | ---------- |
-| Police Officer | `admin@police.com`           | `admin123` |
-| Citizen        | Register via the signup form | —          |
-
----
-
-## Dataset
-
-`scripts/crime_kolkata.csv` — Ward-level monthly crime data for Kolkata used to:
-
-- Train the crime prediction Random Forest model
-- Generate crime risk scores for safe-route analysis
-
----
-
-## License
-
-This project is built as an academic Final Year Project. All rights reserved by the authors.
-
----
+This system is developed as an academic and research initiative. All intellectual rights and distribution permissions remain with the foundational authors.
+_(No commercial distribution without explicit consent)._
 
 <div align="center">
-  <sub>Built with ❤️ as a Final Year Project — Sahayta (Assistance)</sub>
+  <sub>Built for precision, intelligence, and civilian assistance.</sub>
 </div>
