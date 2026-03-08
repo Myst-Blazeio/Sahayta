@@ -329,12 +329,8 @@ const SafeRouteTab: React.FC = () => {
                 style={{ backgroundColor: scoreBg(safeData.properties.safety_score), borderColor: scoreBorder(safeData.properties.safety_score) }}
               >
                 <div>
-                  <div className="text-xs font-black uppercase tracking-widest opacity-80 mb-1" style={{ color: scoreHex(safeData.properties.safety_score) }}>
+                  <div className="text-sm font-black uppercase tracking-widest opacity-90" style={{ color: scoreHex(safeData.properties.safety_score) }}>
                     Safety Index
-                  </div>
-                  <div className={`text-base font-bold flex items-center gap-1.5 ${riskColor(safeData.properties.risk_level)}`}>
-                    {safeData.properties.risk_level === "Low" ? <Shield size={18} /> : <AlertTriangle size={18} />}
-                    {safeData.properties.risk_level} Risk Area
                   </div>
                 </div>
                 <div className="text-right flex items-baseline gap-1 bg-white p-3 rounded-xl shadow-sm border border-black/5" style={{ color: scoreHex(safeData.properties.safety_score) }}>
