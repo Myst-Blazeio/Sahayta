@@ -465,7 +465,11 @@ def get_community_alerts():
                 pass
 
         # Fetch latest 10 community alerts not dismissed by user
-        alerts = list(db.community_alerts.find({'_id': {'$nin': query_ids}}).sort('created_at', -1).limit(10))
+        # Filter for only active alerts
+        query = {'_id': {'$nin': query_ids}, 'is_active': {'$ne': False}}
+
+        alerts = list(db.community_alerts.find(query).sort('created_at', -1).limit(10))
+        
         for alert in alerts:
             alert['_id'] = str(alert['_id'])
             if 'created_at' in alert:

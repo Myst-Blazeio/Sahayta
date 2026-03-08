@@ -23,11 +23,10 @@
       });
 
       if (response.ok) {
-        showSnackbar(
-          "Alert broadcasted successfully to all citizens!",
-          "success",
-        );
-        setTimeout(() => location.reload(), 2000);
+        showSnackbar("Alert broadcasted successfully!", "success");
+        // Assuming closeNewBroadcastModal() is defined elsewhere or not needed for this specific page
+        // closeNewBroadcastModal();
+        setTimeout(() => location.reload(), 1500);
       } else {
         const err = await response.json();
         showSnackbar(
@@ -42,13 +41,6 @@
   }
 
   async function toggleAlert(alertId, btnElement) {
-    if (
-      !confirm(
-        "Are you sure you want to toggle the broadcast status for this alert?",
-      )
-    )
-      return;
-
     if (btnElement) {
       btnElement.disabled = true;
       btnElement.innerHTML = '<span class="animate-pulse">Toggling...</span>';
@@ -60,7 +52,8 @@
       });
 
       if (response.ok) {
-        location.reload();
+        showSnackbar("Alert broadcast status toggled successfully", "success");
+        setTimeout(() => location.reload(), 1500);
       } else {
         const text = await response.text();
         try {
@@ -72,12 +65,18 @@
         } catch (e) {
           showSnackbar("Failed to toggle: " + text, "error");
         }
-        if (btnElement) location.reload();
+        if (btnElement) {
+          btnElement.disabled = false;
+          btnElement.innerHTML = "Toggle Failed";
+        }
       }
     } catch (error) {
       console.error("Error toggling alert:", error);
       showSnackbar("An error occurred while toggling the alert.", "error");
-      if (btnElement) location.reload();
+      if (btnElement) {
+        btnElement.disabled = false;
+        btnElement.innerHTML = "Toggle Failed";
+      }
     }
   }
 

@@ -104,20 +104,32 @@ endblock %} {% block content %}
         </div>
 
         <div
-          class="border-t pt-4 grid grid-cols-3 gap-2 text-center border-gray-100 mt-auto"
+          class="border-t pt-4 flex justify-between text-center border-gray-100 mt-auto"
         >
-          <div>
-            <p class="text-xs text-gray-400">In Progress</p>
+          <div class="flex-1">
+            <p
+              class="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5"
+            >
+              In Progress
+            </p>
             <p class="text-sm font-bold text-blue-600">
               {{ in_progress_count }}
             </p>
           </div>
-          <div class="border-l border-r border-gray-100 px-2">
-            <p class="text-xs text-gray-400">Resolved</p>
+          <div class="flex-1 border-l border-r border-gray-100 px-2">
+            <p
+              class="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5"
+            >
+              Resolved
+            </p>
             <p class="text-sm font-bold text-green-600">{{ resolved_count }}</p>
           </div>
-          <div>
-            <p class="text-xs text-gray-400">Rejected</p>
+          <div class="flex-1">
+            <p
+              class="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5"
+            >
+              Rejected
+            </p>
             <p class="text-sm font-bold text-red-600">{{ rejected_count }}</p>
           </div>
         </div>
