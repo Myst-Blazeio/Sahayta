@@ -4,11 +4,6 @@
 
 **A full-stack, research-driven AI platform automating First Information Report (FIR) filing, semantic legal section (BNS) prediction, and geospatial crime intelligence for law enforcement.**
 
-### 🌐 Live Links
-
-- **Frontend (Citizen & Police Portal):** [https://myst-blazeio.github.io/Sahayta/](https://myst-blazeio.github.io/Sahayta/)
-- **Backend API:** [https://final-year-project-xabd.onrender.com](https://final-year-project-xabd.onrender.com) _(Note: Hosted on a free tier, it may take 30–60s to wake up on the first request.)_
-
 [![Live Frontend](https://img.shields.io/badge/Frontend-GitHub%20Pages-blue?logo=github)](https://myst-blazeio.github.io/Sahayta/)
 [![Python](https://img.shields.io/badge/Python-3.10+-yellow?logo=python)](https://python.org)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://react.dev)
@@ -16,6 +11,11 @@
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-green?logo=mongodb)](https://mongodb.com)
 
 </div>
+
+### 🌐 Live Links
+
+- **Frontend (Citizen & Police Portal):** [https://myst-blazeio.github.io/Sahayta/](https://myst-blazeio.github.io/Sahayta/)
+- **Backend API:** [https://final-year-project-xabd.onrender.com](https://final-year-project-xabd.onrender.com) _(Note: Hosted on a free tier, it may take 30–60s to wake up on the first request.)_
 
 ---
 
