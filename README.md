@@ -100,11 +100,6 @@ flowchart TD
     M --> N
 
     N[Sort descending by Final Score] --> O[🏆 Top-K Predicted BNS Sections]
-
-    style A fill:#f9f,stroke:#333,stroke-width:2px
-    style O fill:#bbf,stroke:#333,stroke-width:2px
-    style B fill:#e1f5fe,stroke:#01579b
-    style I fill:#e8f5e9,stroke:#2e7d32
 ```
 
 #### A. FIR Preprocessing & Keyword Injection
@@ -212,7 +207,7 @@ _Authentication: Bearer JWT is required for all endpoints except those marked `P
 | Method   | Endpoint                        | Access        | Purpose                                                        |
 | -------- | ------------------------------- | ------------- | -------------------------------------------------------------- |
 | **POST** | `/api/auth/login`               | Public        | Obtains JWT access token.                                      |
-| **POST** | `/api/fir/file`                 | Authenticated | Submits unstructured FIr, triggers BNS AI.                     |
+| **POST** | `/api/fir/file`                 | Authenticated | Submits unstructured FIR, triggers BNS AI.                     |
 | **POST** | `/api/intelligence/predict_bns` | Authenticated | Exposes raw access to BM25 Natural Language engine.            |
 | **GET**  | `/api/safe-route/`              | Public        | Returns GeoJSON FeatureCollection with Risk Stats & Routing.   |
 | **GET**  | `/api/police/analytics`         | Auth (Police) | Retrieves temporal and categorical aggregations for dashboard. |
