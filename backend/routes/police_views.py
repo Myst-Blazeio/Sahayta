@@ -199,6 +199,11 @@ def dashboard():
     # Fetch Stats for this station only
     station_id = str(user.get('station_id')) if user.get('station_id') else None
     pending_count = db.firs.count_documents({'status': 'pending', 'station_id': station_id})
+    in_progress_count = db.firs.count_documents({'status': 'in_progress', 'station_id': station_id})
+    resolved_count = db.archives.count_documents({'status': 'resolved', 'station_id': station_id})
+    rejected_count_archives = db.archives.count_documents({'status': 'rejected', 'station_id': station_id})
+    rejected_count_active = db.firs.count_documents({'status': 'rejected', 'station_id': station_id})
+    rejected_count = rejected_count_archives + rejected_count_active
     
     # Fetch Recent FIRs for this station
     firs = list(db.firs.find({'station_id': station_id}).sort('submission_date', -1).limit(5))
@@ -209,6 +214,9 @@ def dashboard():
     return render_template('police/dashboard.html', 
                            user=user, 
                            pending_count=pending_count, 
+                           in_progress_count=in_progress_count,
+                           resolved_count=resolved_count,
+                           rejected_count=rejected_count,
                            firs=firs,
                            chart_labels=chart_labels,
                            chart_data_reported=chart_data_reported,
@@ -284,11 +292,14 @@ def analytics():
     station_id = str(user.get('station_id')) if user.get('station_id') else None
     
     pending = db.firs.count_documents({'status': 'pending', 'station_id': station_id})
+    in_progress = db.firs.count_documents({'status': 'in_progress', 'station_id': station_id})
     resolved = db.archives.count_documents({'status': 'resolved', 'station_id': station_id})
-    rejected = db.archives.count_documents({'status': 'rejected', 'station_id': station_id})
+    rejected_archives = db.archives.count_documents({'status': 'rejected', 'station_id': station_id})
+    rejected_active = db.firs.count_documents({'status': 'rejected', 'station_id': station_id})
+    rejected = rejected_archives + rejected_active
     
     print(f"DEBUG [Analytics route]: Officer {user.get('username')} at Station {station_id}")
-    print(f"DEBUG [Analytics route]: Query resolved={resolved}, pending={pending}, rejected={rejected}")
+    print(f"DEBUG [Analytics route]: Query resolved={resolved}, pending={pending}, in_progress={in_progress}, rejected={rejected}")
     
     # Total Cases is the sum of Active FIRs + Archived FIRs for this station
     total_firs = db.firs.count_documents({'station_id': station_id})
@@ -299,6 +310,7 @@ def analytics():
         'total': total,
         'resolved': resolved,
         'pending': pending,
+        'in_progress': in_progress,
         'rejected': rejected
     }
     
