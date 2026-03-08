@@ -140,6 +140,12 @@ endblock %} {% block scripts %}
         </h3>
       </div>
       <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <p class="text-sm font-medium text-gray-500">In Progress</p>
+        <h3 class="text-3xl font-bold text-blue-600 mt-2">
+          {{ stats.in_progress }}
+        </h3>
+      </div>
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <p class="text-sm font-medium text-gray-500">Rejected</p>
         <h3 class="text-3xl font-bold text-red-600 mt-2">
           {{ stats.rejected }}

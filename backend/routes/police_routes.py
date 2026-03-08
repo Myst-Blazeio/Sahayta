@@ -20,6 +20,9 @@ def dashboard():
     # Fetch Stats
     # Total Pending FIRs for this station
     pending_firs_count = db.firs.count_documents({'station_id': user.get('station_id'), 'status': 'pending'})
+    in_progress_count = db.firs.count_documents({'station_id': user.get('station_id'), 'status': 'in_progress'})
+    resolved_count = db.archives.count_documents({'station_id': user.get('station_id'), 'status': 'resolved'})
+    rejected_count = db.archives.count_documents({'station_id': user.get('station_id'), 'status': 'rejected'}) + db.firs.count_documents({'station_id': user.get('station_id'), 'status': 'rejected'})
     
     # Recent FIRs (ONLY PENDING for dashboard as requested)
     recent_firs_cursor = db.firs.find({'station_id': user.get('station_id'), 'status': 'pending'}).sort('submission_date', -1).limit(5)
@@ -78,6 +81,9 @@ def dashboard():
         
     return jsonify({
         'pending_count': pending_firs_count,
+        'in_progress_count': in_progress_count,
+        'resolved_count': resolved_count,
+        'rejected_count': rejected_count,
         'recent_firs': recent_firs,
         'chart_labels': chart_labels,
         'chart_data': chart_data
@@ -142,6 +148,7 @@ def analytics():
     
     resolved_firs = db.archives.count_documents({'station_id': user.get('station_id'), 'status': 'resolved'})
     pending_firs = db.firs.count_documents({'station_id': user.get('station_id'), 'status': 'pending'})
+    in_progress_firs = db.firs.count_documents({'station_id': user.get('station_id'), 'status': 'in_progress'})
     rejected_firs = db.archives.count_documents({'station_id': user.get('station_id'), 'status': 'rejected'})
     rejected_active = db.firs.count_documents({'station_id': user.get('station_id'), 'status': 'rejected'})
     
@@ -149,6 +156,7 @@ def analytics():
         'total': total_firs + archived_count,
         'resolved': resolved_firs,
         'pending': pending_firs,
+        'in_progress': in_progress_firs,
         'rejected': rejected_firs + rejected_active
     }
     
@@ -286,9 +294,9 @@ def create_alert():
     
     return jsonify({'message': 'Alert broadcasted successfully', 'alert': new_alert}), 201
 
-@police_bp.route('/alerts/<alert_id>', methods=['DELETE'])
+@police_bp.route('/alerts/<alert_id>/toggle', methods=['POST'])
 @jwt_required()
-def delete_alert(alert_id):
+def toggle_alert(alert_id):
     current_user_id = str(get_jwt_identity())
     db = get_db()
     
@@ -297,7 +305,6 @@ def delete_alert(alert_id):
     if not user:
         return jsonify({'error': 'Unauthorized'}), 401
         
-    # Delete the alert (handle both string and ObjectId)
     query = {'_id': alert_id}
     try:
         if len(alert_id) == 24:
@@ -305,11 +312,11 @@ def delete_alert(alert_id):
     except:
         pass
 
-    result = db.community_alerts.delete_one(query)
-    
-    if result.deleted_count:
-        # Also delete related notifications for this alert
-        db.notifications.delete_many({'alert_id': alert_id})
-        return jsonify({'message': 'Alert and related notifications deleted successfully'}), 200
-    else:
+    alert = db.community_alerts.find_one(query)
+    if not alert:
         return jsonify({'error': 'Alert not found'}), 404
+        
+    new_status = not alert.get('is_active', True)
+    db.community_alerts.update_one(query, {'$set': {'is_active': new_status}})
+    
+    return jsonify({'message': 'Alert broadcast status updated successfully', 'is_active': new_status}), 200

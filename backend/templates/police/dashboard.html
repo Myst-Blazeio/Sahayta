@@ -88,8 +88,10 @@ endblock %} {% block content %}
     <!-- Stats Grid -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
       <!-- ... stats cards ... -->
-      <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-        <div class="flex justify-between items-start">
+      <div
+        class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between"
+      >
+        <div class="flex justify-between items-start mb-4">
           <div>
             <p class="text-sm font-medium text-gray-500">Pending Reviews</p>
             <h3 class="text-3xl font-bold text-gray-900 mt-2">
@@ -98,6 +100,25 @@ endblock %} {% block content %}
           </div>
           <div class="p-3 bg-red-50 text-red-600 rounded-lg">
             <i data-lucide="alert-circle"></i>
+          </div>
+        </div>
+
+        <div
+          class="border-t pt-4 grid grid-cols-3 gap-2 text-center border-gray-100 mt-auto"
+        >
+          <div>
+            <p class="text-xs text-gray-400">In Progress</p>
+            <p class="text-sm font-bold text-blue-600">
+              {{ in_progress_count }}
+            </p>
+          </div>
+          <div class="border-l border-r border-gray-100 px-2">
+            <p class="text-xs text-gray-400">Resolved</p>
+            <p class="text-sm font-bold text-green-600">{{ resolved_count }}</p>
+          </div>
+          <div>
+            <p class="text-xs text-gray-400">Rejected</p>
+            <p class="text-sm font-bold text-red-600">{{ rejected_count }}</p>
           </div>
         </div>
       </div>
