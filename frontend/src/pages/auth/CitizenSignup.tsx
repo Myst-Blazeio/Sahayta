@@ -34,7 +34,7 @@ const CitizenSignup = () => {
 
     setIsLoading(true);
     try {
-      const { confirmPassword, ...signupData } = formData;
+      const { confirmPassword: _, ...signupData } = formData;
       await authService.register({
         ...signupData,
         role: "citizen",

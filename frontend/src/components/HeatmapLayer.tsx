@@ -13,7 +13,7 @@ const HeatmapLayer = ({ points }: HeatmapLayerProps) => {
   useEffect(() => {
     if (!points || points.length === 0) return;
 
-    // @ts-ignore (leaflet.heat adds L.heatLayer)
+    // @ts-expect-error (leaflet.heat adds L.heatLayer)
     const heatLayer = L.heatLayer(points, {
       radius: 20,
       blur: 15,

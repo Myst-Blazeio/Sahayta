@@ -10,6 +10,7 @@ interface SnackbarContextType {
 
 const SnackbarContext = createContext<SnackbarContextType | undefined>(undefined);
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useSnackbar = () => {
   const context = useContext(SnackbarContext);
   if (!context) throw new Error('useSnackbar must be used within SnackbarProvider');

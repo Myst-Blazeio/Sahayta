@@ -64,8 +64,6 @@ const formatETA  = (s: number) => {
   if (mins >= 60) return `${Math.floor(mins / 60)}h ${mins % 60}m`;
   return `${mins} min`;
 };
-const riskColor = (lvl: string) =>
-  lvl === "Low" ? "text-green-600" : lvl === "Medium" ? "text-yellow-600" : "text-red-600";
 const scoreBg = (score: number) =>
   score > 80 ? "rgba(34,197,94,0.1)" : score > 60 ? "rgba(234,179,8,0.1)" : "rgba(239,68,68,0.1)";
 const scoreBorder = (score: number) =>

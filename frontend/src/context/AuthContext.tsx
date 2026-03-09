@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { User } from "../types";
 
@@ -19,6 +19,31 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const navigate = useNavigate();
+
+  const login = useCallback((userData: User, authToken: string, userRole: string) => {
+    // Save to sessionStorage (clears on tab close)
+    sessionStorage.setItem("token", authToken);
+    sessionStorage.setItem("user", JSON.stringify(userData));
+    sessionStorage.setItem("role", userRole);
+
+    setToken(authToken);
+    setUser(userData);
+    setRole(userRole);
+  }, []);
+
+  const logout = useCallback(() => {
+    // const currentRole = role || sessionStorage.getItem("role"); 
+    sessionStorage.clear();
+    setToken(null);
+    setUser(null);
+    setRole(null);
+
+    // Redirect to Flask backend for police logout or stays here for citizen?
+    // Actually, police logout is now handled by backend routes, but if we are here, we might need to redirect.
+    // For now, simple client side clear is fine.
+
+    navigate("/");
+  }, [navigate]);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -58,32 +83,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setLoading(false);
     };
     initAuth();
-  }, []);
+  }, [logout]);
 
-  const login = (userData: User, authToken: string, userRole: string) => {
-    // Save to sessionStorage (clears on tab close)
-    sessionStorage.setItem("token", authToken);
-    sessionStorage.setItem("user", JSON.stringify(userData));
-    sessionStorage.setItem("role", userRole);
 
-    setToken(authToken);
-    setUser(userData);
-    setRole(userRole);
-  };
-
-  const logout = () => {
-    // const currentRole = role || sessionStorage.getItem("role"); 
-    sessionStorage.clear();
-    setToken(null);
-    setUser(null);
-    setRole(null);
-
-    // Redirect to Flask backend for police logout or stays here for citizen?
-    // Actually, police logout is now handled by backend routes, but if we are here, we might need to redirect.
-    // For now, simple client side clear is fine.
-
-    navigate("/");
-  };
 
   return (
     <AuthContext.Provider value={{ user, token, role, login, logout, loading }}>
@@ -92,6 +94,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
