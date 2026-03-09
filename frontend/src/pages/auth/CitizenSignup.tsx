@@ -34,7 +34,8 @@ const CitizenSignup = () => {
 
     setIsLoading(true);
     try {
-      const { confirmPassword: _, ...signupData } = formData;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { confirmPassword, ...signupData } = formData;
       await authService.register({
         ...signupData,
         role: "citizen",
