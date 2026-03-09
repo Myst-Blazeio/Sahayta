@@ -11,20 +11,50 @@ import os
 import threading
 import time
 import requests
+import logging
+
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_talisman import Talisman
 
 from config import config
 from ml_service import MLService
 
 load_dotenv()
 
+# Configure structured JSON/basic logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
+
 app = Flask(__name__)
 
-# Allow ALL origins via flask_cors (all origins, credentials supported)
-CORS(app, supports_credentials=True)
+# Enforce Security Headers
+Talisman(app, content_security_policy=None)
+
+# Enforce Rate Limiting
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://"
+)
+
+# Load Config
+env = os.environ.get('FLASK_ENV', 'development')
+
+# Allow ALL origins in dev, strictly specific in production via CORS
+if env == 'production':
+    CORS(app, supports_credentials=True, origins=["https://myst-blazeio.github.io", "http://localhost:5173"])
+else:
+    CORS(app, supports_credentials=True)
 
 
 if not os.path.exists('.env'):
-    print("WARNING: .env file not found. Using default/environment variables.")
+    logger.warning(".env file not found. Using default/environment variables.")
 
 # Load Config
 env = os.environ.get('FLASK_ENV', 'development')
@@ -58,7 +88,7 @@ app.register_blueprint(police_views, url_prefix='/police')
 
 # JWT Config for Cookies
 app.config['JWT_TOKEN_LOCATION'] = ['headers', 'cookies']
-app.config['JWT_COOKIE_SECURE'] = False 
+app.config['JWT_COOKIE_SECURE'] = (env == 'production') # Secure HTTPS-Only cookies in production
 app.config['JWT_COOKIE_CSRF_PROTECT'] = False 
 app.config['JWT_SESSION_COOKIE'] = True  # Expires on browser close
 
@@ -75,40 +105,26 @@ def health_check():
         'db_connected': True # Basic assumption if init_db passed
     }), 200
 
-# Global Error Handler
+# Global Error Handler for 404
 @app.errorhandler(404)
 def not_found(e):
     if request.path.startswith('/api/'):
         return jsonify({'error': 'Not found'}), 404
     return "Page not found", 404
 
-KEEP_ALIVE_INTERVAL = 30  # seconds
-
-def keep_alive():
-    url = os.getenv("KEEP_ALIVE_URL")
-    if not url:
-        return  # silently skip
-
-    while True:
-        try:
-            requests.get(url, timeout=5)
-            print("OK: Keep-alive ping sent", flush=True)
-        except Exception as e:
-            print("WARN: Keep-alive failed:", e, flush=True)
-        time.sleep(KEEP_ALIVE_INTERVAL)
-
-def start_keep_alive():
-    thread = threading.Thread(target=keep_alive, daemon=True)
-    thread.start()
-
-# Start the keep-alive thread
-start_keep_alive()
+# Global API Error Overrides for 500
+@app.errorhandler(Exception)
+def handle_exception(e):
+    logger.error(f"Unhandled Exception: {e}", exc_info=True)
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'Internal Server Error', 'message': str(e) if env != 'production' else 'An unexpected error occurred'}), 500
+    return "Internal Server Error", 500
 
 if __name__ == '__main__':
-    print("Starting Flask app...")
+    logger.info("Starting Flask app...")
     try:
         port = int(os.environ.get('PORT', 5000))
-        app.run(host='0.0.0.0', port=port, debug=False, threaded=True)
-        print("Flask app finished.")
+        app.run(host='0.0.0.0', port=port, debug=(env != 'production'), threaded=True)
+        logger.info("Flask app finished.")
     except Exception as e:
-        print(f"Flask failed to start: {e}")
+        logger.error(f"Flask failed to start: {e}")

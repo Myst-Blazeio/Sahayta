@@ -10,3 +10,5 @@ rank-bm25
 deep-translator
 requests
 gunicorn
+Flask-Limiter
+Flask-Talisman

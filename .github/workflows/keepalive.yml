@@ -1,0 +1,14 @@
+name: Render Backend Keep-Alive
+on:
+  schedule:
+    # Run every 14 minutes to prevent Render from going to sleep
+    - cron: "*/14 * * * *"
+  workflow_dispatch: # Enable manual starting
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping API Health Endpoint
+        run: |
+          curl -s --max-time 10 https://final-year-project-xabd.onrender.com/health | jq .

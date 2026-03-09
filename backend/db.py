@@ -8,7 +8,7 @@ def get_ist():
     return datetime.datetime.utcnow() + datetime.timedelta(hours=5, minutes=30)
 
 def init_db(app):
-    mongo.init_app(app)
+    mongo.init_app(app, maxPoolSize=10)
     # Validate connection
     try:
         # The 'config' object in app should have MONGO_URI
