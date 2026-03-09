@@ -29,7 +29,7 @@ const CitizenLogin = () => {
       }
 
       login(user, token, user.role);
-      navigate(`/dashboard/citizen?username=${user.username}`, { replace: true });
+      navigate(`/dashboard/citizen?session=${token}`, { replace: true });
     } catch (err: any) {
       console.error("Login Error:", err);
       const errorMessage = err.response?.data?.error || "Login failed";

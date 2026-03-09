@@ -30,8 +30,7 @@ const CitizenPortal = () => {
   const [alerts, setAlerts] = useState<CommunityAlert[]>([]);
   const [showNotifs, setShowNotifs] = useState(false);
   const { token, role, user } = useAuth();
-  const searchParams = new URLSearchParams(window.location.search);
-  const urlUsername = searchParams.get("username") || user?.username || "Citizen";
+  const urlUsername = user?.username || "Citizen";
 
   useEffect(() => {
     if (token && role === "citizen") {

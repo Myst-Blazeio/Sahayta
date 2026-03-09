@@ -1,5 +1,3 @@
-"""tests/test_ml_service.py — local smoke test for the TF-IDF ML service."""
-
 from ml_service import ml_service
 
 # ── BNS search ────────────────────────────────────────────────────────────────

@@ -1,19 +1,3 @@
-"""
-ml_service.py
--------------
-Render-safe ML service (512 MB RAM / 1 CPU).  No torch / faiss.
-
-BNS section search uses three layered improvements over plain TF-IDF:
-  1. FIRPreprocessor  — strips FIR boilerplate, surfaces crime keywords
-  2. BM25Okapi        — better term-saturation ranking than TF-IDF cosine
-  3. Keyword re-rank  — post-retrieval boost for sections whose text contains
-                        the extracted crime keywords
-
-Falls back to TF-IDF cosine if bns_bm25.pkl is missing.
-
-Models are LAZY-LOADED on first request to keep startup RAM minimal.
-"""
-
 import os
 import re
 import pickle

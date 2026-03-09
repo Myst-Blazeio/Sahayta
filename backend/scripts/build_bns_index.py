@@ -1,18 +1,3 @@
-"""
-build_bns_index.py
-------------------
-One-time script run (locally or in the Render build command) to produce two
-lightweight search indexes from bns_assets.pkl:
-
-  1. bns_tfidf.pkl  (scikit-learn TF-IDF, kept as fallback)
-  2. bns_bm25.pkl   (BM25Okapi — better term-saturation handling)
-
-Usage:
-    python scripts/build_bns_index.py
-
-No sentence-transformers / torch / faiss required.
-"""
-
 import os
 import re
 import sys

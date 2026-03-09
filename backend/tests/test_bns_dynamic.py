@@ -1,4 +1,3 @@
-"""tests/test_bns_dynamic.py — dynamic input length smoke test."""
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from ml_service import ml_service

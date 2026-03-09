@@ -7,33 +7,33 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
-  const { token, role, user } = useAuth();
+  const { token, role } = useAuth();
   const location = useLocation();
 
   if (!token) {
     return <Navigate to="/" replace />;
   }
 
-  // Feature: Dynamic Route Protection (?username=...)
-  if (role === "citizen" && user?.username) {
+  // Feature: Dynamic Route Protection (?session=...)
+  if (role === "citizen" && token) {
     const searchParams = new URLSearchParams(location.search);
-    const urlUsername = searchParams.get("username");
+    const urlSession = searchParams.get("session");
 
-    // If there is no ?username= parameter at all, append it and replace the URL history
-    if (!urlUsername) {
+    // If there is no ?session= parameter at all, append it and replace the URL history
+    if (!urlSession) {
       return (
         <Navigate
-          to={`${location.pathname}?username=${user.username}`}
+          to={`${location.pathname}?session=${token}`}
           replace
         />
       );
     }
 
-    // If the ?username= parameter does not match the logged-in session, force redirect to their correct dashboard
-    if (urlUsername !== user.username) {
+    // If the ?session= parameter does not match the logged-in session token, force redirect to correct dashboard
+    if (urlSession !== token) {
       return (
         <Navigate
-          to={`/dashboard/citizen?username=${user.username}`}
+          to={`/dashboard/citizen?session=${token}`}
           replace
         />
       );
@@ -45,7 +45,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
     if (role === "citizen") {
       return (
         <Navigate
-          to={`/dashboard/citizen?username=${user?.username || "citizen"}`}
+          to={`/dashboard/citizen?session=${token}`}
           replace
         />
       );

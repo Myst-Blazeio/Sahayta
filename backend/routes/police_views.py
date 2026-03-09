@@ -14,28 +14,25 @@ police_views = Blueprint('police_views', __name__, template_folder='../templates
 def require_route_protection(f):
     """
     Decorator to enforce dynamic unique URL routes.
-    Requires both `?username=...` and `&stationid=...`.
+    Requires `?session=...`.
     If missing or mismatched, heavily redirects back to safe known state.
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'user_id' not in session or 'username' not in session or 'station_id' not in session:
+        if 'user_id' not in session or 'username' not in session or 'station_id' not in session or 'session_jwt' not in session:
             return redirect(url_for('police_views.login'))
             
-        active_username = session['username']
-        active_station_id = session['station_id']
-        
-        url_username = request.args.get('username')
-        url_station_id = request.args.get('stationid')
+        active_session_jwt = session['session_jwt']
+        url_session = request.args.get('session')
         
         # If parameters are missing entirely, inject them safely
-        if not url_username or not url_station_id:
-            return redirect(url_for(request.endpoint, username=active_username, stationid=active_station_id, **request.view_args))
+        if not url_session:
+            return redirect(url_for(request.endpoint, session=active_session_jwt, **request.view_args))
             
         # If parameters exist but are tampered with / swapped tabs
-        if url_username != active_username or str(url_station_id) != str(active_station_id):
-            flash(f"Route protection triggered. Your active session is {active_username} at Station {active_station_id}.", "error")
-            return redirect(url_for('police_views.dashboard', username=active_username, stationid=active_station_id))
+        if url_session != active_session_jwt:
+            flash(f"Route protection triggered. Restored your active session.", "error")
+            return redirect(url_for('police_views.dashboard', session=active_session_jwt))
             
         return f(*args, **kwargs)
     return decorated_function
@@ -62,8 +59,9 @@ def login():
                 'station_id': user.get('station_id')
             }
             access_token = create_access_token(identity=str(user['_id']), additional_claims=claims, expires_delta=datetime.timedelta(days=1))
+            session['session_jwt'] = access_token
             
-            resp = redirect(url_for('police_views.dashboard', username=user['username'], stationid=user.get('station_id')))
+            resp = redirect(url_for('police_views.dashboard', session=access_token))
             set_access_cookies(resp, access_token)
             return resp
         

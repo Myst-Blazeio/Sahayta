@@ -131,35 +131,35 @@
     </div>
     <nav class="flex-1 p-4 space-y-2">
       <a
-        href="{{ url_for('police_views.dashboard', username=user.username, stationid=user.station_id) }}"
+        href="{{ url_for('police_views.dashboard', session=request.args.get('session')) }}"
         class="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
       >
         <i data-lucide="layout-dashboard"></i>
         <span class="font-medium">Dashboard</span>
       </a>
       <a
-        href="{{ url_for('police_views.inbox', username=user.username, stationid=user.station_id) }}"
+        href="{{ url_for('police_views.inbox', session=request.args.get('session')) }}"
         class="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
       >
         <i data-lucide="file-text"></i>
         <span class="font-medium">FIR Inbox</span>
       </a>
       <a
-        href="{{ url_for('police_views.analytics', username=user.username, stationid=user.station_id) }}"
+        href="{{ url_for('police_views.analytics', session=request.args.get('session')) }}"
         class="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
       >
         <i data-lucide="bar-chart-2"></i>
         <span class="font-medium">Analytics</span>
       </a>
       <a
-        href="{{ url_for('police_views.archives', username=user.username, stationid=user.station_id) }}"
+        href="{{ url_for('police_views.archives', session=request.args.get('session')) }}"
         class="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
       >
         <i data-lucide="archive"></i>
         <span class="font-medium">Archives</span>
       </a>
       <a
-        href="{{ url_for('police_views.alerts', username=user.username, stationid=user.station_id) }}"
+        href="{{ url_for('police_views.alerts', session=request.args.get('session')) }}"
         class="flex items-center gap-3 px-4 py-3 bg-blue-50 text-blue-700 rounded-lg"
       >
         <i data-lucide="megaphone"></i>
